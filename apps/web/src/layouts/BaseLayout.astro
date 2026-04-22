@@ -1,37 +1,64 @@
 ---
+import { Font } from "astro:assets";
+
 import "../styles/global.css";
+
+type StructuredData = Record<string, unknown>;
 
 type Props = {
   title: string;
   description: string;
   path?: string;
   image?: string;
+  openGraphType?: string;
+  structuredData?: StructuredData | StructuredData[];
 };
 
 const {
   title,
   description,
   path = Astro.url.pathname,
-  image = "/social-card.svg"
+  image = "/social-card.svg",
+  openGraphType = "website",
+  structuredData
 } = Astro.props;
 
-const canonical = new URL(path, Astro.site);
+const normalizedPath =
+  path === "/" || path.endsWith("/") || path.includes(".") ? path : `${path}/`;
+const canonical = new URL(normalizedPath, Astro.site);
+const structuredDataEntries = Array.isArray(structuredData)
+  ? structuredData.filter(Boolean)
+  : structuredData
+    ? [structuredData]
+    : [];
 ---
 
 <!doctype html>
 <html lang="en">
   <head>
+    <Font cssVariable="--font-satoshi" preload />
+    <Font cssVariable="--font-plus-jakarta-sans" preload />
+    <Font cssVariable="--font-ibm-plex-mono" />
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
+    <meta name="application-name" content="Kordu Probe" />
+    <meta name="theme-color" content="#0a0a0a" />
+    <meta name="color-scheme" content="light" />
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical.toString()} />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    <meta property="og:site_name" content="Kordu Probe" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content={openGraphType} />
     <meta property="og:url" content={canonical.toString()} />
     <meta property="og:image" content={new URL(image, Astro.site).toString()} />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={new URL(image, Astro.site).toString()} />
     <link rel="icon" type="image/svg+xml" href="/kordu-mark.svg" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
@@ -39,17 +66,11 @@ const canonical = new URL(path, Astro.site);
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
     <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
-    <link rel="preconnect" href="https://api.fontshare.com" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://api.fontshare.com/v2/css?f[]=satoshi@900,700,500&display=swap"
-    />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
-    />
+    {
+      structuredDataEntries.map((entry) => (
+        <script is:inline type="application/ld+json" set:html={JSON.stringify(entry)} />
+      ))
+    }
   </head>
   <body>
     <header class="site-header">
@@ -68,13 +89,15 @@ const canonical = new URL(path, Astro.site);
         </a>
         <nav class="nav" aria-label="Primary">
           <a href="/#features">Features</a>
-          <a href="/docs/api">API</a>
-          <a href="/guides/how-to-port-forward-minecraft">Guides</a>
+          <a href="/port-checker/">Checker</a>
+          <a href="/guides/">Guides</a>
+          <a href="/ports/">Ports</a>
+          <a href="/docs/api/">API</a>
           <a href="/#open-source">Open source</a>
         </nav>
         <div class="nav-actions">
           <a class="nav-link-minor" href="/api/openapi.json">OpenAPI</a>
-          <a class="button" href="/port-checker">Start checking</a>
+          <a class="button" href="/port-checker/">Start checking</a>
         </div>
       </div>
     </header>
@@ -88,7 +111,10 @@ const canonical = new URL(path, Astro.site);
           <a href="/.well-known/api-catalog">API Catalog</a>
           <a href="/.well-known/agent-skills/index.json">Agent Skills</a>
           <a href="/api/openapi.json">OpenAPI</a>
-          <a href="/LICENSE">MIT License</a>
+          <a href="/LICENSE">Apache-2.0 License</a>
+          <a href="/SECURITY">Security Policy</a>
+          <a href="/.well-known/security.txt">security.txt</a>
+          <a href="mailto:iyda@kordu.gg">Report an issue</a>
         </div>
       </div>
     </footer>

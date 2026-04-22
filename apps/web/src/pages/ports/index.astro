@@ -1,0 +1,54 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getPortEntries } from "../../lib/content";
+
+const ports = await getPortEntries();
+
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  name: "Kordu Probe port references",
+  description: "Popular ports, service references, and dedicated public-check entry points.",
+  url: new URL("/ports/", Astro.site).toString()
+};
+---
+
+<BaseLayout
+  title="Ports Reference | Kordu Probe"
+  description="Popular ports, service references, and dedicated checker pages for common public services."
+  path="/ports/"
+  structuredData={structuredData}
+>
+  <section class="site-shell page-title">
+    <p class="eyebrow">Ports</p>
+    <h1 class="page-heading">Popular ports and service references.</h1>
+    <p class="page-lead">
+      Jump straight into the dedicated checker flow for the port you care about, then open the
+      reference page when you need service context and failure patterns.
+    </p>
+  </section>
+
+  <section class="site-shell section">
+    <div class="content-grid">
+      {
+        ports.map((entry) => (
+          <article class="page-card content-listing-card">
+            <p class="content-meta">Port {entry.data.port}</p>
+            <h2 class="content-card-title">
+              <a href={`/ports/${entry.data.port}/`}>{entry.data.title}</a>
+            </h2>
+            <p>{entry.data.description}</p>
+            <div class="content-listing-actions">
+              <a class="button-secondary" href={`/ports/${entry.data.port}/`}>
+                View reference
+              </a>
+              <a class="button-ghost content-card-link" href={`/check-port-${entry.data.port}/`}>
+                Check port
+              </a>
+            </div>
+          </article>
+        ))
+      }
+    </div>
+  </section>
+</BaseLayout>

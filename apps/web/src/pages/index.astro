@@ -26,6 +26,8 @@ const webApplicationSchema = {
 <BaseLayout
   title="Kordu Probe | Check any port with clarity"
   description="Fast, accurate public TCP port checks with API access, curl support, and diagnostics that are readable in seconds."
+  path="/"
+  structuredData={webApplicationSchema}
 >
   <section class="site-shell hero">
     <div class="hero-grid">
@@ -39,13 +41,13 @@ const webApplicationSchema = {
           gamers, and infrastructure teams.
         </p>
         <div class="hero-actions">
-          <a class="button" href="/port-checker">
+          <a class="button" href="/port-checker/">
             Start checking
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M5 12h14M13 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </a>
-          <a class="button-ghost" href="/docs/api">View API</a>
+          <a class="button-ghost" href="/docs/api/">View API</a>
         </div>
         <div class="hero-meta">
           <span class="meta-item">IPv4</span>
@@ -190,11 +192,11 @@ const webApplicationSchema = {
     </div>
 
     <div class="open-source-strip" id="open-source">
-      <a href="/LICENSE">MIT licensed</a>
+      <a href="/LICENSE">Apache-2.0 licensed</a>
       <span>Runs on Cloudflare's global edge</span>
       <a href="/.well-known/agent-skills/index.json">Agent-ready metadata</a>
+      <a href="/guides/">Connectivity guides</a>
+      <a href="/ports/">Port references</a>
     </div>
   </section>
-
-  <script is:inline type="application/ld+json" set:html={JSON.stringify(webApplicationSchema)} />
 </BaseLayout>

@@ -45,7 +45,7 @@ Content-Signal: ai-train=no, search=yes, ai-input=yes
 User-agent: *
 Allow: /
 
-Sitemap: ${siteUrl}/sitemap.xml
+Sitemap: ${siteUrl}/sitemap-index.xml
 `;
 
   return new Response(robots, {

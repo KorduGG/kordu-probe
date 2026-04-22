@@ -1,11 +1,12 @@
 ---
-import { getCollection, render, type CollectionEntry } from "astro:content";
+import { render, type CollectionEntry } from "astro:content";
 
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import Breadcrumbs from "../../components/Breadcrumbs.astro";
+import { formatPublishedDate, getGuideEntries } from "../../lib/content";
 
 export async function getStaticPaths() {
-  const entries = await getCollection("guides");
+  const entries = await getGuideEntries();
   return entries.map((entry: CollectionEntry<"guides">) => ({
     params: {
       slug: entry.id
@@ -18,20 +19,43 @@ export async function getStaticPaths() {
 
 const { entry } = Astro.props as { entry: CollectionEntry<"guides"> };
 const { Content } = await render(entry);
+const articleStructuredData = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: entry.data.title,
+  description: entry.data.description,
+  datePublished: entry.data.publishedAt.toISOString(),
+  author: {
+    "@type": "Organization",
+    name: "KORDU LTD"
+  },
+  publisher: {
+    "@type": "Organization",
+    name: "KORDU LTD"
+  },
+  mainEntityOfPage: new URL(`/guides/${entry.id}/`, Astro.site).toString()
+};
 ---
 
-<BaseLayout title={`${entry.data.title} | Kordu Probe`} description={entry.data.description}>
+<BaseLayout
+  title={`${entry.data.title} | Kordu Probe`}
+  description={entry.data.description}
+  path={`/guides/${entry.id}/`}
+  structuredData={articleStructuredData}
+  openGraphType="article"
+>
   <div class="site-shell page-title">
     <Breadcrumbs
       items={[
         { name: "Home", href: "/" },
-        { name: "Guides", href: "/guides/how-to-port-forward-minecraft" },
-        { name: entry.data.title, href: `/guides/${entry.id}` }
+        { name: "Guides", href: "/guides/" },
+        { name: entry.data.title, href: `/guides/${entry.id}/` }
       ]}
     />
     <p class="eyebrow">Guide</p>
     <h1>{entry.data.title}</h1>
     <p>{entry.data.description}</p>
+    <p class="content-meta">Published {formatPublishedDate(entry.data.publishedAt)}</p>
   </div>
   <div class="site-shell section">
     <article class="page-card">

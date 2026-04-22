@@ -21,7 +21,7 @@
     "preinstall": "node ./scripts/enforce-bun.mjs",
     "generate:agent-skills": "bun ./scripts/generate-agent-skills.mjs",
     "build:shared": "bunx tsc -p packages/shared/tsconfig.json --noEmit",
-    "build:web": "cd apps/web && bunx astro build",
+    "build:web": "node ./scripts/build-web.mjs",
     "build:api": "bunx tsc -p apps/api/tsconfig.json --noEmit",
     "build": "bun run generate:agent-skills && bun run build:shared && bun run build:web && bun run build:api",
     "dev:prepare": "bun run generate:agent-skills && PUBLIC_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build:web",

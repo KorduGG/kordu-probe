@@ -1,11 +1,12 @@
 ---
-import { getCollection, render, type CollectionEntry } from "astro:content";
+import { render, type CollectionEntry } from "astro:content";
 
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import Breadcrumbs from "../../components/Breadcrumbs.astro";
+import { getPortEntries } from "../../lib/content";
 
 export async function getStaticPaths() {
-  const entries = await getCollection("ports");
+  const entries = await getPortEntries();
   return entries.map((entry: CollectionEntry<"ports">) => ({
     params: {
       port: String(entry.data.port)
@@ -20,13 +21,17 @@ const { entry } = Astro.props as { entry: CollectionEntry<"ports"> };
 const { Content } = await render(entry);
 ---
 
-<BaseLayout title={`${entry.data.title} | Kordu Probe`} description={entry.data.description}>
+<BaseLayout
+  title={`${entry.data.title} | Kordu Probe`}
+  description={entry.data.description}
+  path={`/ports/${entry.data.port}/`}
+>
   <div class="site-shell page-title">
     <Breadcrumbs
       items={[
         { name: "Home", href: "/" },
-        { name: "Ports", href: "/port-checker" },
-        { name: `Port ${entry.data.port}`, href: `/ports/${entry.data.port}` }
+        { name: "Ports", href: "/ports/" },
+        { name: `Port ${entry.data.port}`, href: `/ports/${entry.data.port}/` }
       ]}
     />
     <p class="eyebrow">{entry.data.service}</p>

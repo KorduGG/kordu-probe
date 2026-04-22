@@ -7,7 +7,7 @@ const guides = defineCollection({
   schema: z.object({
     title: z.string(),
     description: z.string(),
-    publishedAt: z.string()
+    publishedAt: z.coerce.date()
   })
 });
 

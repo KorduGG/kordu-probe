@@ -20,6 +20,8 @@ Kordu Probe is designed for Cloudflare.
 ## Deployment notes
 
 - The web app is built statically and served through the Worker.
+- Astro sitemap generation is handled by `@astrojs/sitemap`, which emits `sitemap-index.xml` plus one or more numbered sitemap files during build.
+- The web bundle now ships `manifest.webmanifest`, `/.well-known/security.txt`, `/SECURITY`, and `/LICENSE` as part of the public trust surface.
 - TCP probing relies on `cloudflare:sockets`.
 - Private targets and Cloudflare IP ranges are intentionally blocked.
 - Raw UDP probing is intentionally unsupported in v1.
@@ -29,4 +31,5 @@ Kordu Probe is designed for Cloudflare.
 - replace placeholder rate-limit namespace values in `apps/api/wrangler.jsonc`
 - set the production `TURNSTILE_EXPECTED_HOSTNAME`
 - confirm the canonical hosted URL remains `https://probe.kordu.tools`
+- ensure `PUBLIC_TURNSTILE_SITE_KEY` is present in `apps/web/.env` or injected into the build environment before running `bun run build`
 - verify the build and runtime environment with `bun run build`

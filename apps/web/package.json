@@ -12,6 +12,7 @@
   "devDependencies": {
     "@astrojs/check": "0.9.8",
     "@astrojs/mdx": "5.0.3",
+    "@astrojs/sitemap": "3.7.2",
     "@kordu-probe/shared": "0.1.0",
     "astro": "6.1.8"
   }
