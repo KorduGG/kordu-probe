@@ -47,7 +47,8 @@ export function isPublicIpv6(ip: string): boolean {
   const ipv4MappedMatch = normalized.match(/^(?:[0-9a-f]{0,4}:)*ffff:(\d{1,3}(?:\.\d{1,3}){3})$/i);
 
   if (ipv4MappedMatch) {
-    return isPublicIpv4(ipv4MappedMatch[1]);
+    const mappedIpv4 = ipv4MappedMatch[1];
+    return mappedIpv4 ? isPublicIpv4(mappedIpv4) : false;
   }
 
   if (

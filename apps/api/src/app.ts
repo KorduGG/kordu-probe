@@ -13,8 +13,10 @@ import type {
   CheckModule,
   CheckRequest,
   CheckResponse,
+  DnsCheckResult,
   HttpRequestHint,
   HttpCheckResult,
+  IpCheckResult,
   ModuleError,
   ProbeExecutionInput,
   ProbeExecutionResult,
@@ -30,14 +32,14 @@ type AppDeps = {
   probePort(input: ProbeExecutionInput): Promise<ProbeExecutionResult>;
   verifyTurnstile(input: TurnstileVerificationInput): Promise<{ success: boolean; errors: string[] }>;
   resolveTarget(rawTarget: string, timeoutMs: number): Promise<ResolvedTarget>;
-  runDnsCheck(target: ResolvedTarget, timeoutMs: number): Promise<CheckResponse["results"]["dns"]>;
+  runDnsCheck(target: ResolvedTarget, timeoutMs: number): Promise<DnsCheckResult>;
   runHttpCheck(
     target: ResolvedTarget,
     port: number | undefined,
     timeoutMs: number,
     hint?: HttpRequestHint
   ): Promise<HttpCheckResult>;
-  runIpCheck(target: ResolvedTarget, timeoutMs: number): Promise<CheckResponse["results"]["ip"]>;
+  runIpCheck(target: ResolvedTarget, timeoutMs: number): Promise<IpCheckResult>;
 };
 
 type ResponseHeaders = Record<string, string>;
@@ -375,7 +377,7 @@ function booleanCheckResponse(check: CheckResponse): boolean | null {
     return null;
   }
 
-  const [moduleName] = check.modules;
+  const moduleName = check.modules[0]!;
   return moduleSucceeded(moduleName, check);
 }
 
@@ -404,9 +406,40 @@ async function maybeVerifyTurnstile(
     secretKey: turnstileSecret,
     token,
     remoteIp: c.req.header("cf-connecting-ip") ?? "unknown-client",
-    expectedHostname: c.env.TURNSTILE_EXPECTED_HOSTNAME,
+    ...(c.env.TURNSTILE_EXPECTED_HOSTNAME
+      ? { expectedHostname: c.env.TURNSTILE_EXPECTED_HOSTNAME }
+      : {}),
     expectedAction: "probe"
   });
+}
+
+function toCheckRequest(body: {
+  target: string;
+  port?: number | undefined;
+  modules?: CheckModule[] | undefined;
+  timeoutMs?: number | undefined;
+  http?: {
+    scheme?: HttpRequestHint["scheme"] | undefined;
+    method?: HttpRequestHint["method"] | undefined;
+  } | undefined;
+  turnstileToken?: string | undefined;
+}): CheckRequest {
+  const http =
+    body.http
+      ? {
+          ...(body.http.scheme ? { scheme: body.http.scheme } : {}),
+          ...(body.http.method ? { method: body.http.method } : {})
+        }
+      : undefined;
+
+  return {
+    target: body.target,
+    ...(typeof body.port === "number" ? { port: body.port } : {}),
+    ...(body.modules ? { modules: body.modules } : {}),
+    ...(typeof body.timeoutMs === "number" ? { timeoutMs: body.timeoutMs } : {}),
+    ...(http && Object.keys(http).length > 0 ? { http } : {}),
+    ...(body.turnstileToken ? { turnstileToken: body.turnstileToken } : {})
+  };
 }
 
 async function executeCheck(body: CheckRequest, deps: AppDeps, env: AppBindings): Promise<CheckResponse> {
@@ -533,7 +566,7 @@ async function executeCheck(body: CheckRequest, deps: AppDeps, env: AppBindings)
     modules,
     results,
     errors,
-    commands: Object.keys(commands).length > 0 ? commands : undefined
+    ...(Object.keys(commands).length > 0 ? { commands } : {})
   };
 
   env.PROBE_ANALYTICS?.writeDataPoint({
@@ -613,12 +646,13 @@ export function createApp(deps: AppDeps) {
 
   app.post("/api/check", zValidator("json", checkRequestSchema), async (c) => {
     const body = c.req.valid("json");
+    const checkRequest = toCheckRequest(body);
     const requestUrl = new URL(c.req.url);
     const view = parseResponseView(c.req.header("prefer"), requestUrl.searchParams.get("view"));
     const format = parseResponseFormat(requestUrl.searchParams.get("format"));
     const timeoutMs = clampTimeout(body.timeoutMs);
     const normalizedTarget = normalizeTargetInput(body.target);
-    const modules = getRequestedModulesForTargetKind(body, normalizedTarget.targetKind);
+    const modules = getRequestedModulesForTargetKind(checkRequest, normalizedTarget.targetKind);
     const tier = getRateLimitTier(modules);
     const cost = getRateLimitCost(modules);
     const rateLimiter = getRateLimitBinding(c.env, tier);
@@ -643,7 +677,7 @@ export function createApp(deps: AppDeps) {
     }
 
     const preResolved = await deps.resolveTarget(body.target, timeoutMs);
-    const result = await executeCheck(body, {
+    const result = await executeCheck(checkRequest, {
       ...deps,
       resolveTarget: () => Promise.resolve(preResolved)
     }, c.env);
@@ -683,7 +717,7 @@ export function createApp(deps: AppDeps) {
         );
       }
 
-      const plainStatus = moduleStatus(result.modules[0], result) ?? "unknown";
+      const plainStatus = moduleStatus(result.modules[0]!, result) ?? "unknown";
       return new Response(`${plainStatus}\n`, {
         status: 200,
         headers: {
@@ -702,10 +736,11 @@ export function createApp(deps: AppDeps) {
 
   app.post("/api/check/web", zValidator("json", webCheckRequestSchema), async (c) => {
     const body = c.req.valid("json");
+    const checkRequest = toCheckRequest(body);
     const clientIp = c.req.header("cf-connecting-ip") ?? "unknown-client";
     const timeoutMs = clampTimeout(body.timeoutMs);
     const normalizedTarget = normalizeTargetInput(body.target);
-    const modules = getRequestedModulesForTargetKind(body, normalizedTarget.targetKind);
+    const modules = getRequestedModulesForTargetKind(checkRequest, normalizedTarget.targetKind);
     const tier = getRateLimitTier(modules);
     const cost = getRateLimitCost(modules);
     const rateLimiter = getRateLimitBinding(c.env, tier);
@@ -741,7 +776,7 @@ export function createApp(deps: AppDeps) {
     }
 
     const preResolved = await deps.resolveTarget(body.target, timeoutMs);
-    const result = await executeCheck(body, {
+    const result = await executeCheck(checkRequest, {
       ...deps,
       resolveTarget: () => Promise.resolve(preResolved)
     }, c.env);
@@ -755,12 +790,12 @@ export function createApp(deps: AppDeps) {
     const view = parseResponseView(c.req.header("prefer"), requestUrl.searchParams.get("view"));
     const format = parseResponseFormat(requestUrl.searchParams.get("format"));
     const timeoutMs = clampTimeout(body.timeoutMs);
-    const checkBody: CheckRequest = {
+    const checkBody: CheckRequest = toCheckRequest({
       target: body.target,
       port: body.port,
       timeoutMs,
       modules: ["tcp"]
-    };
+    });
 
     const tier = getRateLimitTier(["tcp"]);
     const cost = getRateLimitCost(["tcp"]);
