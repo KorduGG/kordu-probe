@@ -77,7 +77,7 @@ describe("web build outputs", () => {
   it("publishes a legacy /sitemap.xml compatibility entrypoint", () => {
     const legacySitemap = readFileSync(path.join(distRoot, "sitemap.xml"), "utf8");
     expect(legacySitemap).toContain("<sitemapindex");
-    expect(legacySitemap).toContain("https://probe.kordu.tools/sitemap-0.xml");
+    expect(legacySitemap).toContain("https://probe.kordu.tools/sitemap-index.xml");
   });
 
   it("publishes the public trust surfaces", () => {
