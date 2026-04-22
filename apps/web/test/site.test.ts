@@ -47,8 +47,9 @@ describe("web build outputs", () => {
 
   it("keeps the generated CSP compatible with the Turnstile loader and IP helper", () => {
     const indexHtml = readFileSync(path.join(distRoot, "index.html"), "utf8");
-    expect(indexHtml).toContain("connect-src 'self' https://api.ipify.org");
+    expect(indexHtml).toContain("connect-src 'self' https://api.ipify.org https://challenges.cloudflare.com");
     expect(indexHtml).not.toContain("'strict-dynamic'");
+    expect(indexHtml).not.toContain("frame-ancestors");
   });
 
   it("keeps homepage discovery and security headers in the static headers file", () => {
@@ -76,17 +77,22 @@ describe("web build outputs", () => {
   it("publishes a legacy /sitemap.xml compatibility entrypoint", () => {
     const legacySitemap = readFileSync(path.join(distRoot, "sitemap.xml"), "utf8");
     expect(legacySitemap).toContain("<sitemapindex");
-    expect(legacySitemap).toContain("https://probe.kordu.tools/sitemap-index.xml");
+    expect(legacySitemap).toContain("https://probe.kordu.tools/sitemap-0.xml");
   });
 
   it("publishes the public trust surfaces", () => {
     const manifest = readFileSync(path.join(distRoot, "manifest.webmanifest"), "utf8");
     const securityTxt = readFileSync(path.join(distRoot, ".well-known", "security.txt"), "utf8");
+    const securityPage = readFileSync(path.join(distRoot, "security", "index.html"), "utf8");
     expect(manifest).toContain('"name":"Kordu Probe"');
+    expect(manifest).toContain('"id":"/"');
     expect(manifest).toContain('"start_url":"/"');
     expect(manifest).toContain('"display":"standalone"');
+    expect(manifest).toContain('"purpose":"any maskable"');
     expect(securityTxt).toContain("Contact: mailto:iyda@kordu.gg");
-    expect(securityTxt).toContain("Policy: https://probe.kordu.tools/SECURITY");
+    expect(securityTxt).toContain("Policy: https://probe.kordu.tools/security/");
+    expect(securityPage).toContain("Security policy and disclosure path.");
+    expect(securityPage).toContain("GitHub private vulnerability reporting");
   });
 
   it("builds guide and port listing pages for navigation instead of pointing at arbitrary detail pages", () => {

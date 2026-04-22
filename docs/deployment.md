@@ -21,7 +21,7 @@ Kordu Probe is designed for Cloudflare.
 
 - The web app is built statically and served through the Worker.
 - Astro sitemap generation is handled by `@astrojs/sitemap`, which emits `sitemap-index.xml` plus one or more numbered sitemap files during build.
-- The web bundle now ships `manifest.webmanifest`, `/.well-known/security.txt`, `/SECURITY`, and `/LICENSE` as part of the public trust surface.
+- The web bundle now ships `manifest.webmanifest`, `/.well-known/security.txt`, `/security/`, and `/LICENSE` as part of the public trust surface.
 - TCP probing relies on `cloudflare:sockets`.
 - Private targets and Cloudflare IP ranges are intentionally blocked.
 - Raw UDP probing is intentionally unsupported in v1.

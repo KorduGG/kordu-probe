@@ -10,11 +10,7 @@ const helperUrl = pathToFileURL(
 ).href;
 
 async function loadHelper() {
-  try {
-    return await import(helperUrl);
-  } catch {
-    return null;
-  }
+  return await import(helperUrl);
 }
 
 function createTempProject(envFileContents?: string) {
@@ -30,8 +26,6 @@ function createTempProject(envFileContents?: string) {
 describe("web build env contract", () => {
   it("loads PUBLIC_TURNSTILE_SITE_KEY from apps/web/.env when the shell env is empty", async () => {
     const helper = await loadHelper();
-    expect(helper).toBeTruthy();
-    if (!helper) return;
 
     const { projectRoot } = createTempProject("PUBLIC_TURNSTILE_SITE_KEY=test-site-key\n");
     const resolved = helper.resolveWebBuildEnv({ projectRoot, env: {} });
@@ -42,8 +36,6 @@ describe("web build env contract", () => {
 
   it("prefers an explicitly provided shell env over the apps/web/.env file", async () => {
     const helper = await loadHelper();
-    expect(helper).toBeTruthy();
-    if (!helper) return;
 
     const { projectRoot } = createTempProject("PUBLIC_TURNSTILE_SITE_KEY=file-site-key\n");
     const resolved = helper.resolveWebBuildEnv({
@@ -56,8 +48,6 @@ describe("web build env contract", () => {
 
   it("throws a stable preflight error when PUBLIC_TURNSTILE_SITE_KEY is absent", async () => {
     const helper = await loadHelper();
-    expect(helper).toBeTruthy();
-    if (!helper) return;
 
     const { projectRoot } = createTempProject();
 

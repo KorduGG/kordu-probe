@@ -67,7 +67,7 @@ const docsStructuredData = {
   structuredData={docsStructuredData}
 >
   <div class="site-shell page-title">
-    <Breadcrumbs items={[{ name: "Home", href: "/" }, { name: "API Docs", href: "/docs/api" }]} />
+    <Breadcrumbs items={[{ name: "Home", href: "/" }, { name: "API Docs", href: "/docs/api/" }]} />
     <p class="eyebrow">API Docs</p>
     <h1>Minimal first, detailed on demand.</h1>
     <p>
@@ -107,7 +107,7 @@ const docsStructuredData = {
       </article>
     </div>
 
-    <div class="two-column" style="margin-top: 1.5rem;">
+    <div class="two-column stack-gap-lg">
       <article class="page-card">
         <h2>Minimal by default</h2>
         <pre class="mono-block">{minimalExample}</pre>
@@ -119,7 +119,7 @@ const docsStructuredData = {
       </article>
     </div>
 
-    <div class="two-column" style="margin-top: 1.5rem;">
+    <div class="two-column stack-gap-lg">
       <article class="page-card">
         <h2>Full response on demand</h2>
         <pre class="mono-block">{fullExample}</pre>
@@ -131,7 +131,7 @@ const docsStructuredData = {
       </article>
     </div>
 
-    <article class="page-card" style="margin-top: 1.5rem;">
+    <article class="page-card stack-gap-lg">
       <h2>Default response</h2>
       <p>
         The default response is short and curl-friendly. For single-module checks, you get one
@@ -148,7 +148,7 @@ const docsStructuredData = {
 }`}</pre>
     </article>
 
-    <article class="page-card" style="margin-top: 1.5rem;">
+    <article class="page-card stack-gap-lg">
       <h2>Full response example</h2>
       <p>
         Use <code>?view=full</code> or <code>Prefer: return=representation</code> when you need
@@ -175,7 +175,7 @@ const docsStructuredData = {
 }`}</pre>
     </article>
 
-    <div class="two-column" style="margin-top: 1.5rem;">
+    <div class="two-column stack-gap-lg">
       <article class="page-card">
         <h2>Compatibility alias</h2>
         <pre class="mono-block">{compatibilityExample}</pre>
@@ -192,7 +192,7 @@ const docsStructuredData = {
       </article>
     </div>
 
-    <article class="page-card" style="margin-top: 1.5rem;">
+    <article class="page-card stack-gap-lg">
       <h2>OpenAPI excerpt</h2>
       <pre class="mono-block">{JSON.stringify(openApiDocument, null, 2)}</pre>
     </article>

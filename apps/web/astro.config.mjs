@@ -52,10 +52,9 @@ export default defineConfig({
       directives: [
         "default-src 'self'",
         "base-uri 'self'",
-        "connect-src 'self' https://api.ipify.org",
+        "connect-src 'self' https://api.ipify.org https://challenges.cloudflare.com",
         "font-src 'self'",
         "form-action 'self'",
-        "frame-ancestors 'none'",
         "frame-src 'self' https://challenges.cloudflare.com",
         "img-src 'self' data:",
         "manifest-src 'self'",

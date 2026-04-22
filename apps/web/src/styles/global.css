@@ -63,6 +63,10 @@ textarea {
   font-family: var(--font-ibm-plex-mono), "SFMono-Regular", Consolas, monospace;
 }
 
+.stack-gap-lg {
+  margin-top: 1.5rem;
+}
+
 .site-shell {
   width: min(calc(100% - 2rem), var(--content-width));
   margin: 0 auto;
@@ -844,10 +848,51 @@ li {
   box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.1);
 }
 
+.dashboard-node-1 {
+  left: 20%;
+  top: 55%;
+}
+
+.dashboard-node-2 {
+  left: 48%;
+  top: 35%;
+}
+
+.dashboard-node-3 {
+  left: 71%;
+  top: 45%;
+}
+
+.dashboard-node-4 {
+  left: 82%;
+  top: 62%;
+}
+
 .dashboard-arc {
   position: absolute;
   border-top: 1px dashed rgba(255, 255, 255, 0.3);
   transform-origin: left center;
+}
+
+.dashboard-arc-1 {
+  left: 20%;
+  top: 52%;
+  width: 30%;
+  transform: rotate(-14deg);
+}
+
+.dashboard-arc-2 {
+  left: 47%;
+  top: 35%;
+  width: 25%;
+  transform: rotate(9deg);
+}
+
+.dashboard-arc-3 {
+  left: 49%;
+  top: 43%;
+  width: 36%;
+  transform: rotate(24deg);
 }
 
 .dashboard-table {

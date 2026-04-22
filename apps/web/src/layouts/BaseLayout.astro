@@ -23,14 +23,17 @@ const {
   structuredData
 } = Astro.props;
 
-const normalizedPath =
-  path === "/" || path.endsWith("/") || path.includes(".") ? path : `${path}/`;
+const normalizedPath = path === "/" || path.endsWith("/") ? path : `${path}/`;
 const canonical = new URL(normalizedPath, Astro.site);
 const structuredDataEntries = Array.isArray(structuredData)
   ? structuredData.filter(Boolean)
   : structuredData
     ? [structuredData]
     : [];
+
+function serializeStructuredData(entry: StructuredData): string {
+  return JSON.stringify(entry).replace(/</g, "\\u003c");
+}
 ---
 
 <!doctype html>
@@ -68,7 +71,7 @@ const structuredDataEntries = Array.isArray(structuredData)
     <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
     {
       structuredDataEntries.map((entry) => (
-        <script is:inline type="application/ld+json" set:html={JSON.stringify(entry)} />
+        <script is:inline type="application/ld+json" set:html={serializeStructuredData(entry)} />
       ))
     }
   </head>
@@ -112,7 +115,7 @@ const structuredDataEntries = Array.isArray(structuredData)
           <a href="/.well-known/agent-skills/index.json">Agent Skills</a>
           <a href="/api/openapi.json">OpenAPI</a>
           <a href="/LICENSE">Apache-2.0 License</a>
-          <a href="/SECURITY">Security Policy</a>
+          <a href="/security/">Security Policy</a>
           <a href="/.well-known/security.txt">security.txt</a>
           <a href="mailto:iyda@kordu.gg">Report an issue</a>
         </div>

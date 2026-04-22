@@ -21,11 +21,15 @@ function parseDotEnv(contents) {
 
     const key = line.slice(0, separatorIndex).trim();
     let value = line.slice(separatorIndex + 1).trim();
-
-    if (
+    const isQuoted =
       (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
+      (value.startsWith("'") && value.endsWith("'"));
+
+    if (!isQuoted) {
+      value = value.replace(/\s+#.*$/u, "").trim();
+    }
+
+    if (isQuoted) {
       value = value.slice(1, -1);
     }
 

@@ -1,5 +1,5 @@
 Contact: mailto:iyda@kordu.gg
 Expires: 2027-04-22T00:00:00.000Z
 Preferred-Languages: en
-Policy: https://probe.kordu.tools/SECURITY
+Policy: https://probe.kordu.tools/security/
 Canonical: https://probe.kordu.tools/.well-known/security.txt

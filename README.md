@@ -140,7 +140,7 @@ Web build env:
 Public trust surfaces shipped by the web app:
 
 - `/.well-known/security.txt`
-- `/SECURITY`
+- `/security/`
 - `/LICENSE`
 - `/manifest.webmanifest`
 
