@@ -1,0 +1,68 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
+
+const securityStructuredData = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  name: "Security Policy",
+  description: "Kordu Probe security policy and vulnerability disclosure instructions.",
+  url: new URL("/security/", Astro.site).toString()
+};
+---
+
+<BaseLayout
+  title="Security Policy | Kordu Probe"
+  description="How to report vulnerabilities in Kordu Probe and which versions are currently supported."
+  path="/security/"
+  structuredData={securityStructuredData}
+>
+  <div class="site-shell page-title">
+    <Breadcrumbs items={[{ name: "Home", href: "/" }, { name: "Security", href: "/security/" }]} />
+    <p class="eyebrow">Security</p>
+    <h1 class="page-heading">Security policy and disclosure path.</h1>
+    <p class="page-lead">
+      Report vulnerabilities privately. Do not open a public issue with exploit details.
+    </p>
+  </div>
+
+  <div class="site-shell section">
+    <article class="page-card content-listing-card">
+      <h2 class="content-card-title">Supported versions</h2>
+      <p>Kordu Probe is currently pre-<code>1.0.0</code>.</p>
+      <table class="table">
+        <thead>
+          <tr><th>Version</th><th>Supported</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>main</code></td><td>Yes</td></tr>
+          <tr><td><code>0.x</code> tags older than the latest release</td><td>Best effort only</td></tr>
+        </tbody>
+      </table>
+      <p>
+        The hosted service and the repository may move quickly while the project is pre-<code>1.0.0</code>.
+        Security fixes will be prioritized, but compatibility guarantees are still limited during this phase.
+      </p>
+    </article>
+
+    <article class="page-card content-listing-card stack-gap-lg">
+      <h2 class="content-card-title">Reporting a vulnerability</h2>
+      <p>Preferred reporting path, in order:</p>
+      <ol>
+        <li>Use GitHub private vulnerability reporting for this repository once it is enabled.</li>
+        <li>If that is unavailable, email <a href="mailto:iyda@kordu.gg">iyda@kordu.gg</a> with the subject <code>Kordu Probe security report</code>.</li>
+        <li>If neither channel is available yet, do not publish exploit details. Ask for a private contact path first.</li>
+      </ol>
+      <p>The service is maintained by <code>KORDU LTD</code> (<code>Company No. 16836154</code>).</p>
+      <p>When reporting an issue, include:</p>
+      <ul>
+        <li>A clear description of the vulnerability</li>
+        <li>Affected paths or endpoints</li>
+        <li>Reproduction steps or a proof of concept</li>
+        <li>Impact assessment</li>
+        <li>Suggested mitigations if you have them</li>
+      </ul>
+      <p>We aim to acknowledge valid reports quickly, investigate privately, and coordinate a fix before public disclosure.</p>
+    </article>
+  </div>
+</BaseLayout>

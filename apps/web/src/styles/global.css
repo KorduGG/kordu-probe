@@ -42,7 +42,7 @@ body {
   margin: 0;
   min-height: 100vh;
   color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Plus Jakarta Sans", "Segoe UI", sans-serif;
+  font-family: var(--font-plus-jakarta-sans), "SF Pro Text", "Segoe UI", sans-serif;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -60,7 +60,11 @@ img {
 code,
 pre,
 textarea {
-  font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+  font-family: var(--font-ibm-plex-mono), "SFMono-Regular", Consolas, monospace;
+}
+
+.stack-gap-lg {
+  margin-top: 1.5rem;
 }
 
 .site-shell {
@@ -418,7 +422,7 @@ h3 {
   margin: 0;
   line-height: 0.98;
   letter-spacing: -0.055em;
-  font-family: "Satoshi", "Plus Jakarta Sans", "Inter", sans-serif;
+  font-family: var(--font-satoshi), var(--font-plus-jakarta-sans), sans-serif;
   color: var(--text);
 }
 
@@ -773,7 +777,7 @@ li {
 
 .response-head span {
   color: var(--success);
-  font-family: "IBM Plex Mono", monospace;
+  font-family: var(--font-ibm-plex-mono), monospace;
   letter-spacing: 0.04em;
 }
 
@@ -844,17 +848,58 @@ li {
   box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.1);
 }
 
+.dashboard-node-1 {
+  left: 20%;
+  top: 55%;
+}
+
+.dashboard-node-2 {
+  left: 48%;
+  top: 35%;
+}
+
+.dashboard-node-3 {
+  left: 71%;
+  top: 45%;
+}
+
+.dashboard-node-4 {
+  left: 82%;
+  top: 62%;
+}
+
 .dashboard-arc {
   position: absolute;
   border-top: 1px dashed rgba(255, 255, 255, 0.3);
   transform-origin: left center;
 }
 
+.dashboard-arc-1 {
+  left: 20%;
+  top: 52%;
+  width: 30%;
+  transform: rotate(-14deg);
+}
+
+.dashboard-arc-2 {
+  left: 47%;
+  top: 35%;
+  width: 25%;
+  transform: rotate(9deg);
+}
+
+.dashboard-arc-3 {
+  left: 49%;
+  top: 43%;
+  width: 36%;
+  transform: rotate(24deg);
+}
+
 .dashboard-table {
   display: grid;
   grid-template-columns: 1fr auto auto;
   gap: 0.6rem;
-  font-family: "IBM Plex Mono", monospace;
+  font-family: var(--font-ibm-plex-mono), monospace;
   font-size: 0.76rem;
   color: rgba(255, 255, 255, 0.7);
   padding: 0.55rem 0.7rem;
@@ -942,6 +987,46 @@ li {
   overflow-x: auto;
 }
 
+.content-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.content-listing-card {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.content-card-title {
+  margin: 0;
+  font-size: 1.4rem;
+  line-height: 1.08;
+}
+
+.content-card-title a {
+  text-decoration: none;
+}
+
+.content-card-link {
+  justify-self: start;
+}
+
+.content-listing-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.content-meta {
+  margin: 0;
+  color: var(--muted-strong);
+  font-size: 0.84rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;
@@ -1027,6 +1112,10 @@ li {
 
   .feature-ribbon,
   .feature-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .content-grid {
     grid-template-columns: 1fr;
   }
 

@@ -20,7 +20,7 @@ if (import.meta.env.PROD && !configuredSiteKey) {
 }
 
 const siteKey = configuredSiteKey ?? "1x00000000000000000000AA";
-const handoffPath = "/port-checker";
+const handoffPath = "/port-checker/";
 
 const quickPills: { port: number; service: string }[] = [
   { port: 22, service: "SSH" },
@@ -218,7 +218,7 @@ const presetsJson = JSON.stringify(presetCategories);
         <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
         <span>Check history</span>
       </button>
-      <a class="probe-chip probe-chip-link" href="/docs/api">API docs</a>
+      <a class="probe-chip probe-chip-link" href="/docs/api/">API docs</a>
       <button class="probe-chip probe-preset-trigger" type="button" id="probe-preset-trigger" aria-expanded="false" aria-controls="probe-preset-panel">
         <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
         <span>Browse presets</span>
@@ -441,7 +441,7 @@ if($s){fclose($s); echo "open\\n";} else {fwrite(STDERR, "$errstr\\n"); exit(1);
 
     const shell = form.closest(".probe-shell");
     const isCompact = shell?.dataset.compact === "true";
-    const handoffPath = shell?.dataset.handoffPath || "/port-checker";
+    const handoffPath = shell?.dataset.handoffPath || "/port-checker/";
     const targetInput = document.getElementById("target");
     const portInput = document.getElementById("port");
     const tokenInput = document.getElementById("turnstileToken");
@@ -1524,7 +1524,7 @@ if($s){fclose($s); echo "open\\n";} else {fwrite(STDERR, "$errstr\\n"); exit(1);
   .terminal-title {
     justify-self: center;
     color: rgba(255, 255, 255, 0.56);
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", sans-serif;
+    font-family: var(--font-satoshi, "SF Pro Text"), "SF Pro Text", sans-serif;
     font-size: 13px;
     font-weight: 500;
     letter-spacing: -0.01em;
@@ -1540,7 +1540,7 @@ if($s){fclose($s); echo "open\\n";} else {fwrite(STDERR, "$errstr\\n"); exit(1);
 
   .terminal-body {
     padding: 14px 16px 16px;
-    font-family: "SF Mono", "IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+    font-family: var(--font-ibm-plex-mono, "SFMono-Regular"), "SFMono-Regular", Menlo, Consolas, monospace;
     font-size: 12.5px;
     line-height: 1.65;
     min-height: 6.5rem;
@@ -1778,7 +1778,7 @@ if($s){fclose($s); echo "open\\n";} else {fwrite(STDERR, "$errstr\\n"); exit(1);
     min-height: 5rem;
     font-size: 0.8rem;
     line-height: 1.5;
-    font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+    font-family: var(--font-ibm-plex-mono, "SFMono-Regular"), "SFMono-Regular", Consolas, monospace;
   }
 
   .probe-more-shells {

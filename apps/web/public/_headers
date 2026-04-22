@@ -1,6 +1,11 @@
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: accelerometer=(), camera=(), geolocation=(), gyroscope=(), microphone=(), payment=(), usb=()
+
 /
   Link: </.well-known/api-catalog>; rel="api-catalog"
   Link: </api/openapi.json>; rel="service-desc"; type="application/openapi+json"
-  Link: </docs/api>; rel="service-doc"; type="text/html"
+  Link: </docs/api/>; rel="service-doc"; type="text/html"
   Link: </.well-known/agent-skills/index.json>; rel="describedby"; type="application/json"
-

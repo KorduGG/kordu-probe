@@ -1,12 +1,13 @@
 ---
-import { getCollection, type CollectionEntry } from "astro:content";
+import { type CollectionEntry } from "astro:content";
 
 import BaseLayout from "../layouts/BaseLayout.astro";
 import ProbeForm from "../components/ProbeForm.astro";
 import Breadcrumbs from "../components/Breadcrumbs.astro";
+import { getPortEntries } from "../lib/content";
 
 export async function getStaticPaths() {
-  const ports = await getCollection("ports");
+  const ports = await getPortEntries();
   return ports.map((entry: CollectionEntry<"ports">) => ({
     params: {
       port: String(entry.data.port)
@@ -23,13 +24,15 @@ const { entry } = Astro.props as { entry: CollectionEntry<"ports"> };
 <BaseLayout
   title={`Check Port ${entry.data.port} | Kordu Probe`}
   description={`Check whether port ${entry.data.port} looks open from the public internet and compare the result with your own terminal commands.`}
+  path={`/check-port-${entry.data.port}/`}
 >
   <div class="site-shell page-title">
     <Breadcrumbs
       items={[
         { name: "Home", href: "/" },
-        { name: "Port Checker", href: "/port-checker" },
-        { name: `Check Port ${entry.data.port}`, href: `/check-port-${entry.data.port}` }
+        { name: "Ports", href: "/ports/" },
+        { name: `Port ${entry.data.port}`, href: `/ports/${entry.data.port}/` },
+        { name: `Check Port ${entry.data.port}`, href: `/check-port-${entry.data.port}/` }
       ]}
     />
     <p class="eyebrow">{entry.data.service}</p>

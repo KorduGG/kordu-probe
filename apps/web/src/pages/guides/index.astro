@@ -1,0 +1,50 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { formatPublishedDate, getGuideEntries } from "../../lib/content";
+
+const guides = await getGuideEntries();
+
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  name: "Kordu Probe guides",
+  description:
+    "Plain-English troubleshooting guides for public connectivity checks, port forwarding, and internet reachability.",
+  url: new URL("/guides/", Astro.site).toString()
+};
+---
+
+<BaseLayout
+  title="Connectivity Guides | Kordu Probe"
+  description="Troubleshooting guides for public reachability, port forwarding, and port-check interpretation."
+  path="/guides/"
+  structuredData={structuredData}
+>
+  <section class="site-shell page-title">
+    <p class="eyebrow">Guides</p>
+    <h1 class="page-heading">Connectivity guides for the questions people ask right after the probe result.</h1>
+    <p class="page-lead">
+      Start with the outside-in answer, then use these walkthroughs to fix routing, port forwarding,
+      DNS, and service configuration with less guesswork.
+    </p>
+  </section>
+
+  <section class="site-shell section">
+    <div class="content-grid">
+      {
+        guides.map((entry) => (
+          <article class="page-card content-listing-card">
+            <p class="content-meta">Published {formatPublishedDate(entry.data.publishedAt)}</p>
+            <h2 class="content-card-title">
+              <a href={`/guides/${entry.id}/`}>{entry.data.title}</a>
+            </h2>
+            <p>{entry.data.description}</p>
+            <a class="button-ghost content-card-link" href={`/guides/${entry.id}/`}>
+              Read guide
+            </a>
+          </article>
+        ))
+      }
+    </div>
+  </section>
+</BaseLayout>

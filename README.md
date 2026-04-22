@@ -28,6 +28,7 @@ This repo is intentionally product-first and curated. Outside contributions are 
 - Human-readable explanations plus copyable follow-up commands
 - Hosted interactive checker with Turnstile only on browser submissions
 - OpenAPI, API catalog, agent-skills metadata, robots rules, and static discovery surfaces
+- Static sitemap index, web manifest, security.txt, and public legal/security documents
 - Cloudflare-native execution model using Workers plus `cloudflare:sockets`
 
 ## Quick API Example
@@ -108,6 +109,10 @@ bun test
 bun run build
 ```
 
+`bun run build` now uses the root preflight script for the Astro site. If `PUBLIC_TURNSTILE_SITE_KEY`
+is missing from `apps/web/.env` and not already present in the shell environment, the build fails
+immediately with a clear error before Astro prerendering starts.
+
 If you want the full local flow:
 
 ```bash
@@ -131,6 +136,13 @@ Web build env:
 
 - `PUBLIC_TURNSTILE_SITE_KEY`
 - `SITE_URL`
+
+Public trust surfaces shipped by the web app:
+
+- `/.well-known/security.txt`
+- `/security/`
+- `/LICENSE`
+- `/manifest.webmanifest`
 
 Cloudflare bindings:
 
