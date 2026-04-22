@@ -1,0 +1,19 @@
+---
+title: How to port forward Minecraft
+description: A plain-English walkthrough for getting Minecraft Java traffic from your router to the actual server host.
+publishedAt: "2026-04-22"
+---
+
+Minecraft Java usually expects public traffic on port `25565`. If Kordu Probe times out, the failure is often not the server software itself. The usual breakpoints are the router, the firewall, or the DNS target.
+
+## Checklist
+
+1. Confirm the Minecraft server is listening on the host you expect.
+2. Verify the router forwards external TCP `25565` to the correct internal IP.
+3. Confirm the server firewall allows inbound TCP `25565`.
+4. Check that your DNS name resolves to the current public IP.
+
+## Why Probe helps
+
+Kordu Probe gives you the outside-in answer first. If the result is `closed`, something reached the host and refused the port. If it is `timeout`, the traffic likely never completed the handshake, which usually points to filtering or a bad route.
+

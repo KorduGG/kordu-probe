@@ -1,0 +1,50 @@
+{
+  "name": "kordu-probe",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Cloudflare-native public connectivity diagnostics with TCP, DNS, HTTP, and IP checks.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "homepage": "https://probe.kordu.tools",
+  "packageManager": "bun@1.3.12",
+  "engines": {
+    "bun": ">=1.3.12"
+  },
+  "overrides": {
+    "vite": "^7.1.12"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "preinstall": "node ./scripts/enforce-bun.mjs",
+    "generate:agent-skills": "bun ./scripts/generate-agent-skills.mjs",
+    "build:shared": "bunx tsc -p packages/shared/tsconfig.json --noEmit",
+    "build:web": "cd apps/web && bunx astro build",
+    "build:api": "bunx tsc -p apps/api/tsconfig.json --noEmit",
+    "build": "bun run generate:agent-skills && bun run build:shared && bun run build:web && bun run build:api",
+    "dev:prepare": "bun run generate:agent-skills && PUBLIC_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build:web",
+    "dev:api": "wrangler dev --cwd apps/api",
+    "dev:web": "cd apps/web && bunx astro dev",
+    "dev": "bun run dev:prepare && bun run dev:api",
+    "typecheck:shared": "bunx tsc -p packages/shared/tsconfig.json --noEmit",
+    "typecheck:web": "cd apps/web && bunx astro check",
+    "typecheck:api": "bunx tsc -p apps/api/tsconfig.json --noEmit",
+    "typecheck": "bun run typecheck:shared && bun run typecheck:web && bun run typecheck:api",
+    "lint": "bunx eslint apps/api/src apps/api/test packages/shared/src scripts --ext .ts,.js,.mjs",
+    "test:shared": "cd packages/shared && bunx vitest run --passWithNoTests",
+    "test:web": "cd apps/web && PUBLIC_TURNSTILE_SITE_KEY=1x00000000000000000000AA bunx astro build && bunx vitest run",
+    "test:api": "cd apps/api && bunx vitest run",
+    "test": "bun run generate:agent-skills && bun run test:shared && bun run test:web && bun run test:api"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.1",
+    "@types/node": "24.10.1",
+    "eslint": "9.39.4",
+    "globals": "16.5.0",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.46.4",
+    "vitest": "4.1.5"
+  }
+}

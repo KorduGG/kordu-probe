@@ -1,0 +1,19 @@
+---
+title: Check port 443 publicly
+description: A practical guide to understanding external HTTPS reachability without conflating TCP openness with full TLS or application health.
+publishedAt: "2026-04-22"
+---
+
+Port `443` being `open` only means the TCP socket accepted a connection. It does **not** prove your certificate, ALPN setup, reverse proxy rules, or upstream app are healthy.
+
+## Use TCP results correctly
+
+Use a TCP check when you need to answer the first question: can anything on the public internet connect to this socket at all?
+
+Then follow up with:
+
+- `curl -I https://your-host`
+- your load balancer dashboard
+- TLS certificate inspection
+- application-specific health checks
+

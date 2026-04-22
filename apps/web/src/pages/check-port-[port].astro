@@ -1,0 +1,59 @@
+---
+import { getCollection, type CollectionEntry } from "astro:content";
+
+import BaseLayout from "../layouts/BaseLayout.astro";
+import ProbeForm from "../components/ProbeForm.astro";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
+
+export async function getStaticPaths() {
+  const ports = await getCollection("ports");
+  return ports.map((entry: CollectionEntry<"ports">) => ({
+    params: {
+      port: String(entry.data.port)
+    },
+    props: {
+      entry
+    }
+  }));
+}
+
+const { entry } = Astro.props as { entry: CollectionEntry<"ports"> };
+---
+
+<BaseLayout
+  title={`Check Port ${entry.data.port} | Kordu Probe`}
+  description={`Check whether port ${entry.data.port} looks open from the public internet and compare the result with your own terminal commands.`}
+>
+  <div class="site-shell page-title">
+    <Breadcrumbs
+      items={[
+        { name: "Home", href: "/" },
+        { name: "Port Checker", href: "/port-checker" },
+        { name: `Check Port ${entry.data.port}`, href: `/check-port-${entry.data.port}` }
+      ]}
+    />
+    <p class="eyebrow">{entry.data.service}</p>
+    <h1>Check port {entry.data.port}</h1>
+    <p>
+      Use this page when you specifically need a quick public answer for port {entry.data.port},
+      then compare the result with local shell commands and your router or firewall rules.
+    </p>
+  </div>
+  <div class="site-shell section">
+    <div class="two-column">
+      <ProbeForm
+        heading={`Run a public probe for port ${entry.data.port}`}
+        summary={`Port ${entry.data.port} is commonly used for ${entry.data.service}. This page keeps the TCP check focused while still surfacing DNS and web-level context when relevant.`}
+      />
+      <article class="page-card">
+        <h2>Common reasons this port fails</h2>
+        <ul>
+          <li>The service is not actually listening on the expected interface.</li>
+          <li>The router is not forwarding traffic to the right internal host.</li>
+          <li>A host firewall is silently dropping packets.</li>
+          <li>The public IP or DNS record points somewhere else entirely.</li>
+        </ul>
+      </article>
+    </div>
+  </div>
+</BaseLayout>

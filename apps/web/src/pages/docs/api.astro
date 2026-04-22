@@ -1,0 +1,189 @@
+---
+import { openApiDocument } from "@kordu-probe/shared";
+
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Breadcrumbs from "../../components/Breadcrumbs.astro";
+
+const minimalExample = `curl https://probe.kordu.tools/api/check \\
+  -X POST \\
+  -H "content-type: application/json" \\
+  -d '{
+    "target": "example.com",
+    "port": 443,
+    "modules": ["tcp"]
+  }'`;
+
+const booleanExample = `curl "https://probe.kordu.tools/api/check?format=boolean" \\
+  -X POST \\
+  -H "content-type: application/json" \\
+  -d '{
+    "target": "example.com",
+    "port": 443,
+    "modules": ["tcp"]
+  }'`;
+
+const fullExample = `curl "https://probe.kordu.tools/api/check?view=full" \\
+  -X POST \\
+  -H "content-type: application/json" \\
+  -d '{
+    "target": "example.com",
+    "port": 443,
+    "modules": ["tcp", "dns", "http", "ip"],
+    "timeoutMs": 3000
+  }'`;
+
+const preferExample = `curl https://probe.kordu.tools/api/check \\
+  -X POST \\
+  -H "content-type: application/json" \\
+  -H "Prefer: return=representation" \\
+  -d '{
+    "target": "example.com",
+    "port": 443,
+    "modules": ["tcp", "dns", "http", "ip"]
+  }'`;
+
+const compatibilityExample = `curl https://probe.kordu.tools/api/probe \\
+  -X POST \\
+  -H "content-type: application/json" \\
+  -d '{
+    "target": "example.com",
+    "port": 443
+  }'`;
+---
+
+<BaseLayout
+  title="API Docs | Kordu Probe"
+  description="Kordu Probe API reference for anonymous public connectivity checks across TCP, DNS, HTTP/HTTPS, and IP/domain metadata."
+>
+  <div class="site-shell page-title">
+    <Breadcrumbs items={[{ name: "Home", href: "/" }, { name: "API Docs", href: "/docs/api" }]} />
+    <p class="eyebrow">API Docs</p>
+    <h1>Minimal first, detailed on demand.</h1>
+    <p>
+      Kordu Probe exposes a small anonymous API with one primary endpoint. Website checks still use
+      Turnstile, but direct API and curl usage do not require sign-up or browser challenges. The
+      default response is intentionally terse; ask for the full envelope only when you need it.
+    </p>
+  </div>
+
+  <div class="site-shell section">
+    <div class="two-column">
+      <article class="page-card">
+        <h2>Endpoints</h2>
+        <table class="table">
+          <thead>
+            <tr><th>Method</th><th>Path</th><th>Purpose</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>GET</td><td><code>/api/health</code></td><td>Health and capability status</td></tr>
+            <tr><td>GET</td><td><code>/api/openapi.json</code></td><td>Machine-readable schema</td></tr>
+            <tr><td>POST</td><td><code>/api/check</code></td><td>Connectivity checks with minimal responses by default</td></tr>
+            <tr><td>POST</td><td><code>/api/probe</code></td><td>TCP compatibility alias</td></tr>
+            <tr><td>GET</td><td><code>/.well-known/api-catalog</code></td><td>RFC 9727 API catalog</td></tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="page-card">
+        <h2>Supported modules</h2>
+        <ul>
+          <li><strong>tcp</strong>: open, closed, or timeout from the public probe vantage</li>
+          <li><strong>dns</strong>: A, AAAA, CNAME, MX, NS, TXT, and reverse lookups where useful</li>
+          <li><strong>http</strong>: HTTP/HTTPS status, redirects, final URL, and response timing</li>
+          <li><strong>ip</strong>: target normalization, reverse DNS, and RDAP-backed metadata</li>
+          <li><strong>udp</strong>: explicitly unsupported in v1 on Cloudflare-only infrastructure</li>
+        </ul>
+      </article>
+    </div>
+
+    <div class="two-column" style="margin-top: 1.5rem;">
+      <article class="page-card">
+        <h2>Minimal by default</h2>
+        <pre class="mono-block">{minimalExample}</pre>
+      </article>
+
+      <article class="page-card">
+        <h2>Boolean output</h2>
+        <pre class="mono-block">{booleanExample}</pre>
+      </article>
+    </div>
+
+    <div class="two-column" style="margin-top: 1.5rem;">
+      <article class="page-card">
+        <h2>Full response on demand</h2>
+        <pre class="mono-block">{fullExample}</pre>
+      </article>
+
+      <article class="page-card">
+        <h2>Prefer header</h2>
+        <pre class="mono-block">{preferExample}</pre>
+      </article>
+    </div>
+
+    <article class="page-card" style="margin-top: 1.5rem;">
+      <h2>Default response</h2>
+      <p>
+        The default response is short and curl-friendly. For single-module checks, you get one
+        concise status block instead of the full diagnostic envelope.
+      </p>
+      <pre class="mono-block">{`{
+  "ok": true,
+  "target": "example.com",
+  "module": "tcp",
+  "status": "open",
+  "latencyMs": 18,
+  "port": 443,
+  "ip": "93.184.216.34"
+}`}</pre>
+    </article>
+
+    <article class="page-card" style="margin-top: 1.5rem;">
+      <h2>Full response example</h2>
+      <p>
+        Use <code>?view=full</code> or <code>Prefer: return=representation</code> when you need
+        normalized targets, module-by-module results, commands, and the complete error envelope.
+      </p>
+      <pre class="mono-block">{`{
+  "target": "example.com",
+  "normalized": {
+    "input": "example.com",
+    "value": "example.com",
+    "kind": "domain",
+    "hostname": "example.com",
+    "ip": null
+  },
+  "resolvedAddresses": ["93.184.216.34"],
+  "modules": ["dns", "ip", "tcp", "http"],
+  "results": {
+    "tcp": { "status": "open" },
+    "dns": { "status": "ok" },
+    "http": { "status": "ok", "statusCode": 200 },
+    "ip": { "status": "ok" }
+  },
+  "errors": []
+}`}</pre>
+    </article>
+
+    <div class="two-column" style="margin-top: 1.5rem;">
+      <article class="page-card">
+        <h2>Compatibility alias</h2>
+        <pre class="mono-block">{compatibilityExample}</pre>
+      </article>
+
+      <article class="page-card">
+        <h2>Response controls</h2>
+        <ul>
+          <li><code>?view=full</code>: rich envelope with normalized targets, modules, results, commands, and errors</li>
+          <li><code>?format=plain</code>: plain text status such as <code>open</code> or <code>timeout</code> for single-module checks</li>
+          <li><code>?format=boolean</code>: <code>true</code> or <code>false</code> for single-module checks</li>
+          <li><code>Prefer: return=representation</code>: standards-based alternative to <code>?view=full</code></li>
+        </ul>
+      </article>
+    </div>
+
+    <article class="page-card" style="margin-top: 1.5rem;">
+      <h2>OpenAPI excerpt</h2>
+      <pre class="mono-block">{JSON.stringify(openApiDocument, null, 2)}</pre>
+    </article>
+  </div>
+</BaseLayout>

@@ -1,0 +1,2036 @@
+---
+type Props = {
+  heading?: string;
+  summary?: string;
+  compact?: boolean;
+  showCommands?: boolean;
+};
+
+const {
+  heading = "Connectivity check",
+  summary = "Run a public connectivity check for hostnames, IPs, ports, DNS, and web reachability.",
+  compact = false,
+  showCommands = false
+} = Astro.props;
+
+const configuredSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
+
+if (import.meta.env.PROD && !configuredSiteKey) {
+  throw new Error("PUBLIC_TURNSTILE_SITE_KEY is required for production web builds.");
+}
+
+const siteKey = configuredSiteKey ?? "1x00000000000000000000AA";
+const handoffPath = "/port-checker";
+
+const quickPills: { port: number; service: string }[] = [
+  { port: 22, service: "SSH" },
+  { port: 80, service: "HTTP" },
+  { port: 443, service: "HTTPS" },
+  { port: 3389, service: "RDP" },
+  { port: 5432, service: "Postgres" },
+  { port: 25565, service: "Minecraft" }
+];
+
+/*
+ * Game & service preset catalog — serialised as a JSON blob so the
+ * client-side JS can search / filter without shipping Astro runtime.
+ */
+const presetCategories = [
+  { id: "fps", label: "FPS / Shooters", items: [
+    { name: "Counter-Strike 2", port: 27015, proto: "UDP/TCP" },
+    { name: "CS:GO", port: 27015, proto: "UDP/TCP" },
+    { name: "Valorant", port: 8393, proto: "TCP" },
+    { name: "Team Fortress 2", port: 27015, proto: "UDP" },
+    { name: "Overwatch 2", port: 26503, proto: "UDP" },
+    { name: "Apex Legends", port: 37015, proto: "UDP" },
+    { name: "Call of Duty: Warzone", port: 3074, proto: "UDP" },
+    { name: "Call of Duty: MW III", port: 3074, proto: "UDP" },
+    { name: "Battlefield 2042", port: 25200, proto: "UDP" },
+    { name: "Halo Infinite", port: 3074, proto: "UDP" },
+    { name: "Rainbow Six Siege", port: 6015, proto: "UDP" },
+    { name: "Escape from Tarkov", port: 17000, proto: "UDP" },
+    { name: "PUBG", port: 7777, proto: "UDP" },
+    { name: "Insurgency: Sandstorm", port: 27102, proto: "UDP" },
+    { name: "Left 4 Dead 2", port: 27015, proto: "UDP" },
+    { name: "Quake Champions", port: 27960, proto: "UDP" },
+    { name: "Unreal Tournament", port: 7777, proto: "UDP" },
+    { name: "Hunt: Showdown", port: 27015, proto: "UDP" },
+  ]},
+  { id: "survival", label: "Survival / Crafting", items: [
+    { name: "Minecraft Java", port: 25565, proto: "TCP" },
+    { name: "Minecraft Bedrock", port: 19132, proto: "UDP" },
+    { name: "Rust", port: 28015, proto: "UDP" },
+    { name: "ARK: Survival Evolved", port: 7777, proto: "UDP" },
+    { name: "ARK: Survival Ascended", port: 7777, proto: "UDP" },
+    { name: "DayZ", port: 2302, proto: "UDP" },
+    { name: "7 Days to Die", port: 26900, proto: "UDP" },
+    { name: "Valheim", port: 2456, proto: "UDP" },
+    { name: "The Forest", port: 27015, proto: "UDP" },
+    { name: "Sons of the Forest", port: 8766, proto: "UDP" },
+    { name: "Conan Exiles", port: 7777, proto: "UDP" },
+    { name: "Satisfactory", port: 7777, proto: "UDP" },
+    { name: "Terraria", port: 7777, proto: "TCP" },
+    { name: "Starbound", port: 21025, proto: "TCP" },
+    { name: "Don't Starve Together", port: 10999, proto: "UDP" },
+    { name: "Palworld", port: 8211, proto: "UDP" },
+    { name: "Enshrouded", port: 15636, proto: "UDP" },
+    { name: "V Rising", port: 9876, proto: "UDP" },
+    { name: "Unturned", port: 27015, proto: "UDP" },
+    { name: "Raft", port: 27015, proto: "UDP" },
+    { name: "Grounded", port: 7777, proto: "UDP" },
+    { name: "Subnautica: Below Zero", port: 27015, proto: "UDP" },
+    { name: "Project Zomboid", port: 16261, proto: "UDP" },
+    { name: "Eco", port: 3000, proto: "TCP" },
+  ]},
+  { id: "sandbox", label: "Sandbox / Open World", items: [
+    { name: "Garry's Mod", port: 27015, proto: "UDP" },
+    { name: "Space Engineers", port: 27016, proto: "UDP" },
+    { name: "GTA V (FiveM)", port: 30120, proto: "UDP/TCP" },
+    { name: "GTA V (alt:V)", port: 7788, proto: "UDP" },
+    { name: "GTA:SA (SA-MP)", port: 7777, proto: "UDP" },
+    { name: "Euro Truck Sim 2", port: 27015, proto: "UDP" },
+    { name: "Factorio", port: 34197, proto: "UDP" },
+    { name: "Stardew Valley", port: 24642, proto: "UDP" },
+    { name: "No Man's Sky", port: 7777, proto: "UDP" },
+    { name: "Astroneer", port: 8777, proto: "UDP" },
+    { name: "Core Keeper", port: 27015, proto: "UDP" },
+    { name: "Barotrauma", port: 27015, proto: "UDP" },
+    { name: "Kerbal Space Program", port: 6702, proto: "UDP" },
+    { name: "Vintage Story", port: 42420, proto: "TCP" },
+  ]},
+  { id: "mmo", label: "MMO / RPG", items: [
+    { name: "World of Warcraft", port: 3724, proto: "TCP" },
+    { name: "Final Fantasy XIV", port: 54992, proto: "TCP" },
+    { name: "Guild Wars 2", port: 6112, proto: "TCP" },
+    { name: "Elder Scrolls Online", port: 24100, proto: "TCP" },
+    { name: "Lost Ark", port: 6040, proto: "TCP" },
+    { name: "Black Desert Online", port: 8888, proto: "TCP" },
+    { name: "Star Wars: TOR", port: 8995, proto: "TCP" },
+    { name: "RuneScape", port: 43594, proto: "TCP" },
+    { name: "Old School RuneScape", port: 43594, proto: "TCP" },
+    { name: "EVE Online", port: 26000, proto: "TCP" },
+    { name: "Albion Online", port: 5055, proto: "UDP" },
+    { name: "Path of Exile", port: 6112, proto: "TCP" },
+    { name: "Diablo IV", port: 6112, proto: "TCP" },
+    { name: "New World", port: 7777, proto: "UDP" },
+  ]},
+  { id: "strategy", label: "Strategy / RTS", items: [
+    { name: "Age of Empires IV", port: 27015, proto: "UDP" },
+    { name: "Age of Empires II DE", port: 27015, proto: "UDP" },
+    { name: "Civilization VI", port: 2056, proto: "TCP" },
+    { name: "StarCraft II", port: 6113, proto: "TCP" },
+    { name: "Total War: Warhammer III", port: 27015, proto: "UDP" },
+    { name: "Hearts of Iron IV", port: 1630, proto: "TCP" },
+    { name: "Europa Universalis IV", port: 1630, proto: "TCP" },
+    { name: "Stellaris", port: 1630, proto: "TCP" },
+    { name: "Company of Heroes 3", port: 27015, proto: "UDP" },
+  ]},
+  { id: "racing", label: "Racing / Sports", items: [
+    { name: "Assetto Corsa", port: 9600, proto: "UDP/TCP" },
+    { name: "Assetto Corsa Competizione", port: 9231, proto: "UDP" },
+    { name: "iRacing", port: 32034, proto: "UDP" },
+    { name: "BeamNG.drive", port: 4444, proto: "TCP" },
+    { name: "Rocket League", port: 7777, proto: "UDP" },
+    { name: "F1 24", port: 20777, proto: "UDP" },
+    { name: "Forza Horizon 5", port: 3074, proto: "UDP" },
+    { name: "TrackMania", port: 2350, proto: "UDP/TCP" },
+    { name: "rFactor 2", port: 54297, proto: "UDP" },
+  ]},
+  { id: "other-games", label: "Other Games", items: [
+    { name: "Roblox", port: 49152, proto: "UDP" },
+    { name: "Fortnite", port: 9011, proto: "UDP" },
+    { name: "League of Legends", port: 5000, proto: "UDP" },
+    { name: "Dota 2", port: 27015, proto: "UDP" },
+    { name: "Among Us", port: 22023, proto: "UDP" },
+    { name: "Dead by Daylight", port: 8014, proto: "UDP" },
+    { name: "Phasmophobia", port: 27015, proto: "UDP" },
+    { name: "Lethal Company", port: 7777, proto: "UDP" },
+    { name: "Sea of Thieves", port: 3074, proto: "UDP" },
+    { name: "Deep Rock Galactic", port: 7777, proto: "UDP" },
+    { name: "Arma 3", port: 2302, proto: "UDP" },
+    { name: "Squad", port: 7787, proto: "UDP" },
+    { name: "Farming Simulator 22", port: 10823, proto: "UDP" },
+    { name: "SCP: Secret Laboratory", port: 7777, proto: "UDP" },
+    { name: "Pavlov VR", port: 7777, proto: "UDP" },
+  ]},
+  { id: "infra", label: "Infrastructure", items: [
+    { name: "SSH", port: 22, proto: "TCP" },
+    { name: "FTP", port: 21, proto: "TCP" },
+    { name: "SFTP", port: 22, proto: "TCP" },
+    { name: "HTTP", port: 80, proto: "TCP" },
+    { name: "HTTPS", port: 443, proto: "TCP" },
+    { name: "DNS", port: 53, proto: "UDP/TCP" },
+    { name: "SMTP", port: 25, proto: "TCP" },
+    { name: "SMTP (TLS)", port: 587, proto: "TCP" },
+    { name: "IMAP", port: 143, proto: "TCP" },
+    { name: "IMAPS", port: 993, proto: "TCP" },
+    { name: "POP3", port: 110, proto: "TCP" },
+    { name: "POP3S", port: 995, proto: "TCP" },
+    { name: "RDP", port: 3389, proto: "TCP" },
+    { name: "VNC", port: 5900, proto: "TCP" },
+    { name: "Telnet", port: 23, proto: "TCP" },
+    { name: "LDAP", port: 389, proto: "TCP" },
+    { name: "LDAPS", port: 636, proto: "TCP" },
+    { name: "WireGuard", port: 51820, proto: "UDP" },
+    { name: "OpenVPN", port: 1194, proto: "UDP" },
+    { name: "NTP", port: 123, proto: "UDP" },
+    { name: "SNMP", port: 161, proto: "UDP" },
+    { name: "Syslog", port: 514, proto: "UDP" },
+  ]},
+  { id: "databases", label: "Databases", items: [
+    { name: "PostgreSQL", port: 5432, proto: "TCP" },
+    { name: "MySQL", port: 3306, proto: "TCP" },
+    { name: "MariaDB", port: 3306, proto: "TCP" },
+    { name: "MongoDB", port: 27017, proto: "TCP" },
+    { name: "Redis", port: 6379, proto: "TCP" },
+    { name: "Memcached", port: 11211, proto: "TCP" },
+    { name: "Elasticsearch", port: 9200, proto: "TCP" },
+    { name: "CouchDB", port: 5984, proto: "TCP" },
+    { name: "ClickHouse", port: 8123, proto: "TCP" },
+    { name: "Neo4j", port: 7687, proto: "TCP" },
+    { name: "Cassandra", port: 9042, proto: "TCP" },
+    { name: "InfluxDB", port: 8086, proto: "TCP" },
+    { name: "MSSQL", port: 1433, proto: "TCP" },
+    { name: "Oracle DB", port: 1521, proto: "TCP" },
+  ]},
+];
+
+const presetsJson = JSON.stringify(presetCategories);
+---
+
+<section
+  class:list={["probe-shell", compact && "probe-shell-compact"]}
+  aria-labelledby="probe-form-heading"
+  data-compact={compact ? "true" : "false"}
+  data-handoff-path={handoffPath}
+>
+  <header class="probe-head">
+    <div class="probe-head-lead">
+      <p class="probe-kicker">{heading}</p>
+      <h2 id="probe-form-heading" class="probe-head-summary">{summary}</h2>
+    </div>
+    <div class="probe-head-actions">
+      <button class="probe-chip" type="button" data-use-ip>
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+        <span class="probe-chip-label">Use my IP</span>
+      </button>
+      <button class="probe-chip" type="button" data-history-toggle aria-expanded="false" aria-controls="probe-history-panel">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+        <span>Check history</span>
+      </button>
+      <a class="probe-chip probe-chip-link" href="/docs/api">API docs</a>
+      <button class="probe-chip probe-preset-trigger" type="button" id="probe-preset-trigger" aria-expanded="false" aria-controls="probe-preset-panel">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <span>Browse presets</span>
+      </button>
+    </div>
+  </header>
+
+  <div id="probe-history-panel" class="probe-history-panel" hidden>
+    <p class="probe-history-empty">No checks yet. Past probes will appear here for easy re-running.</p>
+  </div>
+
+  <form id="probe-form" class="probe-form">
+    <div class="probe-input-row">
+      <input
+        id="target"
+        name="target"
+        type="text"
+        placeholder="example.com or 93.184.216.34"
+        aria-label="Hostname or IP"
+        autocomplete="off"
+        spellcheck="false"
+        required
+      />
+      <input
+        id="port"
+        name="port"
+        type="number"
+        min="1"
+        max="65535"
+        inputmode="numeric"
+        placeholder="443 optional"
+        aria-label="Port"
+      />
+      <button class="probe-submit" type="submit">
+        <span class="probe-submit-label">Check</span>
+        <svg class="probe-submit-spinner" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 3a9 9 0 1 1-6.36 2.64"/></svg>
+      </button>
+    </div>
+
+    <div class="probe-port-pills" aria-label="Common ports">
+      {quickPills.map(({ port, service }) => (
+        <button class="probe-port-pill" type="button" data-port={port} title={`${port} · ${service}`}>
+          <span class="probe-port-num">{port}</span>
+          <small>{service}</small>
+        </button>
+      ))}
+    </div>
+
+    <input id="turnstileToken" type="hidden" name="turnstileToken" />
+    <div id="probe-turnstile-container" class="probe-turnstile-row" data-sitekey={siteKey}></div>
+    <script is:inline type="application/json" id="probe-preset-data" set:html={presetsJson}></script>
+  </form>
+
+  <div id="probe-preset-panel" class="probe-preset-panel" hidden>
+    <div class="probe-preset-header">
+      <div class="probe-preset-search-wrap">
+        <svg class="probe-preset-search-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <input id="probe-preset-search" class="probe-preset-search" type="text" placeholder="Search games, services, or ports…" autocomplete="off" spellcheck="false" />
+      </div>
+      <button id="probe-preset-close" class="probe-preset-close" type="button" aria-label="Close presets">&times;</button>
+    </div>
+    <div class="probe-preset-categories" id="probe-preset-categories"></div>
+    <div class="probe-preset-list" id="probe-preset-list"></div>
+    <div class="probe-preset-count" id="probe-preset-count"></div>
+  </div>
+
+  <div id="probe-loading" class="probe-loading" hidden>
+    <div class="terminal-window">
+      <div class="terminal-head">
+        <div class="terminal-lights" aria-hidden="true">
+          <span class="terminal-light terminal-light-red"></span>
+          <span class="terminal-light terminal-light-amber"></span>
+          <span class="terminal-light terminal-light-green"></span>
+        </div>
+        <span class="terminal-title">kordu-probe — tcp</span>
+        <span class="terminal-spacer" aria-hidden="true"></span>
+      </div>
+      <div class="terminal-body" aria-live="polite">
+        <pre id="probe-log"></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="probe-result is-initial" id="probe-result">
+    <div class="probe-status-row">
+      <div class="probe-status-main">
+        <span id="result-status-dot" class="probe-status-dot" data-status="open"></span>
+        <div class="probe-status-body">
+        <strong id="result-status-badge" class="probe-status-label">{compact ? "Start on the full checker" : "Ready to run"}</strong>
+          <p id="result-explanation">{compact ? "Open the dedicated checker page to verify and run the live request." : "Enter a target and hit Check to run the live connectivity probe."}</p>
+        </div>
+      </div>
+      <div class="probe-status-side">
+        <span id="probe-status" class="probe-status-copy">{compact ? "Canonical flow" : ""}</span>
+        <button id="probe-status-action" type="button" class="probe-status-action" hidden>{compact ? "Start checking" : "Run check"}</button>
+      </div>
+    </div>
+
+    <div class="probe-metric-grid">
+      <article class="probe-metric">
+        <span>Latency</span>
+        <strong id="result-latency">n/a</strong>
+      </article>
+      <article class="probe-metric">
+        <span>Check type</span>
+        <strong id="result-check-type">Live check</strong>
+      </article>
+      <article class="probe-metric">
+        <span>Detected service</span>
+        <strong id="result-service">Pending</strong>
+      </article>
+      <article class="probe-metric">
+        <span>Resolved IP</span>
+        <strong id="result-address">No result yet</strong>
+      </article>
+    </div>
+
+    {showCommands && (
+      <div class="probe-command-grid">
+        <label class="probe-command">
+          <span class="probe-command-head">
+            <span>curl</span>
+            <button type="button" class="probe-copy" data-copy-target="command-curl">Copy</button>
+          </span>
+          <textarea id="command-curl" readonly rows="3">curl -X HEAD -i https://example.com/</textarea>
+        </label>
+        <label class="probe-command">
+          <span class="probe-command-head">
+            <span>CLI</span>
+            <button type="button" class="probe-copy" data-copy-target="command-cli">Copy</button>
+          </span>
+          <textarea id="command-cli" readonly rows="3">nc -vz 93.184.216.34 443</textarea>
+        </label>
+        <label class="probe-command">
+          <span class="probe-command-head">
+            <span>PowerShell</span>
+            <button type="button" class="probe-copy" data-copy-target="command-powershell">Copy</button>
+          </span>
+          <textarea id="command-powershell" readonly rows="3">Resolve-DnsName -Name example.com</textarea>
+        </label>
+      </div>
+    )}
+
+    {showCommands && (
+      <details class="probe-more-shells">
+        <summary>More commands &amp; languages</summary>
+        <div class="probe-command-grid probe-command-grid-more">
+          <label class="probe-command">
+            <span class="probe-command-head">
+              <span>telnet</span>
+              <button type="button" class="probe-copy" data-copy-target="command-telnet">Copy</button>
+            </span>
+            <textarea id="command-telnet" readonly rows="2">telnet 93.184.216.34 443</textarea>
+          </label>
+          <label class="probe-command">
+            <span class="probe-command-head">
+              <span>Python</span>
+              <button type="button" class="probe-copy" data-copy-target="command-python">Copy</button>
+            </span>
+            <textarea id="command-python" readonly rows="2">python -c "import socket; socket.create_connection(('93.184.216.34', 443), timeout=5)"</textarea>
+          </label>
+          <label class="probe-command">
+            <span class="probe-command-head">
+              <span>Node.js</span>
+              <button type="button" class="probe-copy" data-copy-target="command-node">Copy</button>
+            </span>
+            <textarea id="command-node" readonly rows="2">{`node -e "require('net').createConnection({host:'93.184.216.34',port:443,timeout:5000},()=>console.log('open')).on('error',e=>console.log(e.code))"`}</textarea>
+          </label>
+          <label class="probe-command">
+            <span class="probe-command-head">
+              <span>Go</span>
+              <button type="button" class="probe-copy" data-copy-target="command-go">Copy</button>
+            </span>
+            <textarea id="command-go" readonly rows="3">{`conn, err := net.DialTimeout("tcp", "93.184.216.34:443", 5*time.Second)
+if err != nil { fmt.Println(err); return }
+conn.Close()`}</textarea>
+          </label>
+          <label class="probe-command">
+            <span class="probe-command-head">
+              <span>Ruby</span>
+              <button type="button" class="probe-copy" data-copy-target="command-ruby">Copy</button>
+            </span>
+            <textarea id="command-ruby" readonly rows="2">ruby -rsocket -e "TCPSocket.new('93.184.216.34', 443).close; puts 'open'"</textarea>
+          </label>
+          <label class="probe-command">
+            <span class="probe-command-head">
+              <span>PHP</span>
+              <button type="button" class="probe-copy" data-copy-target="command-php">Copy</button>
+            </span>
+            <textarea id="command-php" readonly rows="4">{`php -r '$s=@fsockopen("93.184.216.34", 443, $errno, $errstr, 5);
+if($s){fclose($s); echo "open\\n";} else {fwrite(STDERR, "$errstr\\n"); exit(1);}'`}</textarea>
+          </label>
+        </div>
+      </details>
+    )}
+
+    {showCommands && (
+      <details class="probe-technical-details">
+        <summary>Technical details</summary>
+        <div class="probe-technical-grid">
+          <article class="probe-technical-item">
+            <span>Checks run</span>
+            <strong id="result-modules">TCP, DNS, HTTP, IP</strong>
+          </article>
+          <article class="probe-technical-item">
+            <span>Probe source</span>
+            <strong id="result-vantage">Cloudflare edge</strong>
+          </article>
+        </div>
+      </details>
+    )}
+  </div>
+</section>
+
+<script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+<script is:inline>
+  (function () {
+    const form = document.getElementById("probe-form");
+    if (!form) return;
+
+    const shell = form.closest(".probe-shell");
+    const isCompact = shell?.dataset.compact === "true";
+    const handoffPath = shell?.dataset.handoffPath || "/port-checker";
+    const targetInput = document.getElementById("target");
+    const portInput = document.getElementById("port");
+    const tokenInput = document.getElementById("turnstileToken");
+    const submitBtn = form.querySelector(".probe-submit");
+    const statusNode = document.getElementById("probe-status");
+    const statusAction = document.getElementById("probe-status-action");
+    const resultBadge = document.getElementById("result-status-badge");
+    const statusDot = document.getElementById("result-status-dot");
+    const resultLatency = document.getElementById("result-latency");
+    const resultExplanation = document.getElementById("result-explanation");
+    const resultVantage = document.getElementById("result-vantage");
+    const resultAddress = document.getElementById("result-address");
+    const resultCheckType = document.getElementById("result-check-type");
+    const resultService = document.getElementById("result-service");
+    const resultModules = document.getElementById("result-modules");
+    const commandCurl = document.getElementById("command-curl");
+    const commandCli = document.getElementById("command-cli");
+    const commandPowershell = document.getElementById("command-powershell");
+    const commandTelnet = document.getElementById("command-telnet");
+    const commandPython = document.getElementById("command-python");
+    const commandNode = document.getElementById("command-node");
+    const commandGo = document.getElementById("command-go");
+    const commandRuby = document.getElementById("command-ruby");
+    const commandPhp = document.getElementById("command-php");
+    const loadingPanel = document.getElementById("probe-loading");
+    const logNode = document.getElementById("probe-log");
+    const resultPanel = document.getElementById("probe-result");
+    const historyToggle = shell ? shell.querySelector("[data-history-toggle]") : null;
+    const historyPanel = document.getElementById("probe-history-panel");
+    const useIpBtn = shell ? shell.querySelector("[data-use-ip]") : null;
+    const turnstileContainer = document.getElementById("probe-turnstile-container");
+    const presetTrigger = document.getElementById("probe-preset-trigger");
+    const presetPanel = document.getElementById("probe-preset-panel");
+    const presetSearch = document.getElementById("probe-preset-search");
+    const presetClose = document.getElementById("probe-preset-close");
+    const presetCategoriesEl = document.getElementById("probe-preset-categories");
+    const presetListEl = document.getElementById("probe-preset-list");
+    const presetCountEl = document.getElementById("probe-preset-count");
+    const presetDataEl = document.getElementById("probe-preset-data");
+    const presetCategories = presetDataEl ? JSON.parse(presetDataEl.textContent) : [];
+
+    const serviceNames = {
+      22: "SSH", 80: "HTTP", 443: "HTTPS", 3389: "RDP",
+      5432: "Postgres", 25565: "Minecraft", 8080: "HTTP", 8443: "HTTPS"
+    };
+
+    const readyToRunPresentation2 = {
+      badge: "Ready to run",
+      dotStatus: "open",
+      latency: "n/a",
+      explanation: "Enter a target and hit Check to run the live connectivity probe.",
+      vantage: "Cloudflare edge",
+      address: "No result yet",
+      checkType: "Live check",
+      service: "Pending",
+      modules: "TCP, DNS, HTTP, IP"
+    };
+
+    const compactPreviewPresentation = {
+      badge: "Start on the full checker",
+      dotStatus: "open",
+      latency: "n/a",
+      explanation: "Open the dedicated checker page to verify and run the live request.",
+      vantage: "Cloudflare edge",
+      address: "No result yet",
+      checkType: "Live check",
+      service: "Pending",
+      modules: "TCP, DNS, HTTP, IP"
+    };
+
+    const unavailablePresentation = {
+      badge: "Unavailable",
+      dotStatus: "closed",
+      latency: "n/a",
+      explanation: "Live website checks are temporarily unavailable.",
+      vantage: "Cloudflare edge",
+      address: "No result yet",
+      checkType: "Live check",
+      service: "Pending",
+      modules: "TCP, DNS, HTTP, IP"
+    };
+
+    const verificationFailedPresentation = {
+      badge: "Retry needed",
+      dotStatus: "timeout",
+      latency: "n/a",
+      explanation: "Security verification failed. Click Check again to retry.",
+      vantage: "Cloudflare edge",
+      address: "No result yet",
+      checkType: "Live check",
+      service: "Pending",
+      modules: "TCP, DNS, HTTP, IP"
+    };
+
+    let turnstileWidgetId = null;
+    let turnstileReadyPromise = null;
+
+    function setPresentation(presentation) {
+      resultBadge.textContent = presentation.badge;
+      statusDot.dataset.status = presentation.dotStatus;
+      resultLatency.textContent = presentation.latency;
+      resultExplanation.textContent = presentation.explanation;
+      if (resultVantage) resultVantage.textContent = presentation.vantage;
+      resultAddress.textContent = presentation.address;
+      resultCheckType.textContent = presentation.checkType;
+      resultService.textContent = presentation.service;
+      if (resultModules) resultModules.textContent = presentation.modules;
+    }
+
+    function buildHandoffUrl() {
+      const url = new URL(handoffPath, window.location.origin);
+      const target = targetInput && targetInput.value ? targetInput.value.trim() : "";
+      const port = portInput && portInput.value ? portInput.value.trim() : "";
+
+      if (target) url.searchParams.set("target", target);
+      if (port) url.searchParams.set("port", port);
+
+      return url.toString();
+    }
+
+    function navigateToFullChecker() {
+      window.location.href = buildHandoffUrl();
+    }
+
+    function setStatusAction(mode) {
+      if (!statusAction) return;
+
+      if (mode === "hidden") {
+        statusAction.hidden = true;
+        return;
+      }
+
+      statusAction.hidden = false;
+      statusAction.textContent =
+        mode === "retry" ? "Try again" :
+        mode === "start" ? "Start checking" :
+        "Run check";
+    }
+
+    function formatModules(modules) {
+      return Array.isArray(modules) && modules.length > 0
+        ? modules.map((moduleName) => String(moduleName).toUpperCase()).join(", ")
+        : "TCP";
+    }
+
+    function formatVantage(label) {
+      if (!label) return "Cloudflare edge";
+
+      return label
+        .replace(/^Canonical Cloudflare vantage near /i, "Cloudflare edge near ")
+        .replace(/^Canonical Cloudflare vantage/i, "Cloudflare edge")
+        .trim();
+    }
+
+    function waitForTurnstile() {
+      if (window.turnstile && typeof window.turnstile.render === "function") {
+        return Promise.resolve(window.turnstile);
+      }
+
+      if (!turnstileReadyPromise) {
+        turnstileReadyPromise = new Promise((resolve, reject) => {
+          const startedAt = Date.now();
+          const interval = window.setInterval(() => {
+            if (window.turnstile && typeof window.turnstile.render === "function") {
+              window.clearInterval(interval);
+              resolve(window.turnstile);
+              return;
+            }
+
+            if (Date.now() - startedAt > 8000) {
+              window.clearInterval(interval);
+              reject(new Error("Turnstile failed to load."));
+            }
+          }, 120);
+        });
+      }
+
+      return turnstileReadyPromise;
+    }
+
+    async function ensureTurnstileWidget() {
+      if (!turnstileContainer) return null;
+
+      const turnstile = await waitForTurnstile();
+
+      if (turnstileWidgetId !== null) {
+        return turnstile;
+      }
+
+      turnstileWidgetId = turnstile.render("#probe-turnstile-container", {
+        sitekey: turnstileContainer.dataset.sitekey,
+        action: "probe",
+        size: "invisible",
+        callback(token) {
+          tokenInput.value = token;
+        },
+        "expired-callback"() {
+          tokenInput.value = "";
+        },
+        "error-callback"() {
+          tokenInput.value = "";
+        }
+      });
+
+      return turnstile;
+    }
+
+    async function obtainToken() {
+      try {
+        await ensureTurnstileWidget();
+        if (turnstileWidgetId !== null && window.turnstile) {
+          window.turnstile.reset(turnstileWidgetId);
+        }
+        // Wait for the invisible challenge to resolve
+        const start = Date.now();
+        while (!tokenInput.value && Date.now() - start < 12000) {
+          await new Promise(r => setTimeout(r, 150));
+        }
+        return !!tokenInput.value;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function clearVerificationToken() {
+      tokenInput.value = "";
+      if (turnstileWidgetId !== null && window.turnstile) {
+        window.turnstile.reset(turnstileWidgetId);
+      }
+    }
+
+    function derivePresentation(body, portValue) {
+      const tcp = body && body.results ? body.results.tcp : null;
+      const http = body && body.results ? body.results.http : null;
+      const dns = body && body.results ? body.results.dns : null;
+      const ip = body && body.results ? body.results.ip : null;
+      const resolved = (body && body.resolvedAddresses && body.resolvedAddresses[0]) || (ip && ip.ip) || "No public IP";
+      const vantage = formatVantage(body && body.vantage && body.vantage.label);
+      const modules = formatModules(body && body.modules);
+
+      if (tcp) {
+        return {
+          badge: tcp.status === "open" ? "Open" : tcp.status === "closed" ? "Closed" : "Timeout",
+          dotStatus: tcp.status,
+          latency: tcp.latencyMs + " ms",
+          explanation: tcp.explanation,
+          vantage,
+          address: resolved,
+          checkType: "Port check",
+          service: serviceNames[portValue] || ("Port " + portValue),
+          modules
+        };
+      }
+
+      if (http) {
+        return {
+          badge: http.status === "ok" ? ("HTTP " + (http.statusCode || "")).trim() : http.status === "timeout" ? "HTTP timeout" : "HTTP failed",
+          dotStatus: http.status === "timeout" ? "timeout" : http.ok ? "open" : "closed",
+          latency: http.latencyMs ? (http.latencyMs + " ms") : "n/a",
+          explanation:
+            http.status === "ok"
+              ? "HTTP " + (http.statusCode || "response") + " received from " + (http.finalUrl || http.url) + "."
+              : http.status === "timeout"
+                ? "The HTTP request timed out before the endpoint responded."
+                : "The HTTP request could not be completed from the probe vantage.",
+          vantage,
+          address: resolved,
+          checkType: "Website check",
+          service: http.scheme.toUpperCase(),
+          modules
+        };
+      }
+
+      if (dns) {
+        const recordCount =
+          dns.records.a.length +
+          dns.records.aaaa.length +
+          dns.records.cname.length +
+          dns.records.mx.length +
+          dns.records.ns.length +
+          dns.records.txt.length;
+
+        return {
+          badge: "Resolved",
+          dotStatus: "open",
+          latency: "n/a",
+          explanation:
+            recordCount > 0
+              ? "Resolved " + recordCount + " DNS records for " + ((body.normalized && body.normalized.hostname) || body.target) + "."
+              : "DNS lookup completed, but no public records were returned.",
+          vantage,
+          address: resolved,
+          checkType: "DNS lookup",
+          service: "DNS records",
+          modules
+        };
+      }
+
+      return {
+        badge: "Checked",
+        dotStatus: "open",
+        latency: "n/a",
+        explanation: "The connectivity check completed.",
+        vantage,
+        address: resolved,
+        checkType: "IP lookup",
+        service: (ip && ip.ipVersion) || "Connectivity",
+        modules
+      };
+    }
+
+    function appendLog(line, variant) {
+      if (!logNode) return;
+      const span = document.createElement("span");
+      if (variant) span.className = "log-" + variant;
+      span.textContent = line + "\n";
+      logNode.appendChild(span);
+      logNode.parentElement.scrollTop = logNode.parentElement.scrollHeight;
+    }
+
+    function resetLog() {
+      if (logNode) logNode.textContent = "";
+    }
+
+    function showLoading() {
+      if (loadingPanel) loadingPanel.hidden = false;
+    }
+
+    function hideLoading() {
+      if (loadingPanel) loadingPanel.hidden = true;
+    }
+
+    async function streamLogLines(target, port) {
+      const portLabel = port ? ":" + port : " (no port)";
+      const lines = [
+        { t: 100, text: "$ probe " + target + portLabel, v: "cmd" },
+        { t: 220, text: "[edge] Resolving " + target + "...", v: "info" },
+        { t: 420, text: "[edge] Selecting nearest Cloudflare vantage...", v: "info" },
+        { t: 640, text: port ? "[edge] Dialing " + target + ":" + port + "..." : "[edge] Probing DNS + HTTP modules...", v: "info" },
+      ];
+      for (const line of lines) {
+        await new Promise((r) => setTimeout(r, line.t));
+        appendLog(line.text, line.v);
+      }
+    }
+
+    // Port pill clicks
+    document.querySelectorAll("[data-port]").forEach((button) => {
+      button.addEventListener("click", () => {
+        portInput.value = button.dataset.port || "";
+        portInput.focus();
+        button.classList.add("is-pressed");
+        setTimeout(() => button.classList.remove("is-pressed"), 220);
+      });
+    });
+
+    // Use my IP
+    if (useIpBtn) {
+      useIpBtn.addEventListener("click", async () => {
+        const labelEl = useIpBtn.querySelector(".probe-chip-label");
+        const original = labelEl ? labelEl.textContent : "Use my IP";
+        useIpBtn.disabled = true;
+        if (labelEl) labelEl.textContent = "Fetching...";
+        try {
+          const r = await fetch("https://api.ipify.org?format=json");
+          const body = await r.json();
+          if (body && body.ip && targetInput) {
+            targetInput.value = body.ip;
+            if (labelEl) labelEl.textContent = "Filled";
+          }
+        } catch (e) {
+          if (labelEl) labelEl.textContent = "Failed";
+        } finally {
+          setTimeout(() => {
+            if (labelEl) labelEl.textContent = original;
+            useIpBtn.disabled = false;
+          }, 1400);
+        }
+      });
+    }
+
+    if (statusAction) {
+      statusAction.addEventListener("click", () => {
+        if (isCompact) {
+          navigateToFullChecker();
+          return;
+        }
+        form.requestSubmit();
+      });
+    }
+
+
+
+    // History toggle
+    if (historyToggle && historyPanel) {
+      historyToggle.addEventListener("click", () => {
+        const open = historyPanel.hidden;
+        historyPanel.hidden = !open;
+        historyToggle.setAttribute("aria-expanded", open ? "true" : "false");
+      });
+    }
+
+    // Copy buttons
+    document.querySelectorAll(".probe-copy").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const targetId = btn.dataset.copyTarget;
+        const field = targetId ? document.getElementById(targetId) : null;
+        if (!field) return;
+        try {
+          await navigator.clipboard.writeText(field.value);
+          const prev = btn.textContent;
+          btn.textContent = "Copied";
+          btn.classList.add("is-copied");
+          setTimeout(() => {
+            btn.textContent = prev;
+            btn.classList.remove("is-copied");
+          }, 1200);
+        } catch (e) {
+          btn.textContent = "Ctrl+C";
+        }
+      });
+    });
+
+    function resetToVerificationState(message) {
+      if (isCompact) {
+        setPresentation(compactPreviewPresentation);
+        if (statusNode) statusNode.textContent = "Canonical flow";
+        setStatusAction("start");
+        return;
+      }
+
+      clearVerificationToken();
+      setPresentation(verificationFailedPresentation);
+      setStatusAction("retry");
+      if (statusNode) statusNode.textContent = message || "Click Check to try again.";
+    }
+
+    if (isCompact) {
+      setPresentation(compactPreviewPresentation);
+      if (statusNode) statusNode.textContent = "Canonical flow";
+      if (statusAction) statusAction.hidden = false;
+      setStatusAction("start");
+    } else {
+      setPresentation(readyToRunPresentation2);
+      setStatusAction("hidden");
+      if (statusNode) statusNode.textContent = "Ready";
+
+      const searchParams = new URL(window.location.href).searchParams;
+      const presetTarget = searchParams.get("target");
+      const presetPort = searchParams.get("port");
+
+      if (presetTarget && targetInput && !targetInput.value) {
+        targetInput.value = presetTarget;
+      }
+
+      if (presetPort && portInput && !portInput.value) {
+        portInput.value = presetPort;
+      }
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      if (isCompact) {
+        navigateToFullChecker();
+        return;
+      }
+
+      if (!tokenInput.value) {
+        submitBtn.classList.add("is-loading");
+        if (statusNode) statusNode.textContent = "Verifying…";
+        const ok = await obtainToken();
+        if (!ok) {
+          submitBtn.classList.remove("is-loading");
+          resetToVerificationState("Verification could not complete. Try again.");
+          return;
+        }
+      }
+
+      const target = targetInput.value.trim();
+      const rawPort = portInput.value.trim();
+      const port = rawPort ? Number(rawPort) : undefined;
+      const payload = {
+        target,
+        timeoutMs: 3000,
+        turnstileToken: tokenInput.value
+      };
+
+      if (typeof port === "number" && Number.isFinite(port)) {
+        payload.port = port;
+      } else if (/[a-z]/i.test(target)) {
+        payload.http = { scheme: "https", method: "HEAD" };
+      }
+
+      // Reveal full result section on first check
+      if (resultPanel) resultPanel.classList.remove("is-initial");
+      if (statusAction) statusAction.hidden = false;
+
+      submitBtn.classList.add("is-loading");
+      if (statusNode) statusNode.textContent = "Running connectivity check…";
+      resetLog();
+      showLoading();
+      const logPromise = streamLogLines(target, port);
+
+      try {
+        const response = await fetch("/api/check/web", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        const body = await response.json();
+        await logPromise;
+
+        if (!response.ok) {
+          appendLog("[edge] ✗ " + ((body && body.error && body.error.message) || "check failed"), "err");
+          const errorCode = body && body.error && body.error.code;
+
+          if (errorCode === "turnstile_invalid") {
+            resetToVerificationState("Verification expired. Complete it again.");
+            return;
+          }
+
+          if (errorCode === "configuration_error") {
+            clearVerificationToken();
+            setPresentation(unavailablePresentation);
+            if (statusNode) statusNode.textContent = "Website checks are temporarily unavailable.";
+            setStatusAction("hidden");
+            return;
+          }
+
+          clearVerificationToken();
+          if (statusNode) statusNode.textContent = "The check could not be completed.";
+          return;
+        }
+
+        const presentation = derivePresentation(body, port);
+        appendLog("[edge] ✓ " + presentation.badge + " — " + presentation.latency, "ok");
+        appendLog("$ done", "cmd");
+
+        await new Promise((r) => setTimeout(r, 420));
+
+        setPresentation(presentation);
+        if (statusNode) statusNode.textContent = "Checked just now";
+        setStatusAction("hidden");
+        clearVerificationToken();
+
+        if (commandCurl) {
+          commandCurl.value =
+            (body && body.commands && body.commands.tcp && body.commands.tcp.curl) ||
+            (body && body.commands && body.commands.http && body.commands.http.curl) ||
+            ("dig +short " + target);
+        }
+        if (commandCli) {
+          commandCli.value =
+            (body && body.commands && body.commands.tcp && body.commands.tcp.netcat) ||
+            ("dig +short " + target);
+        }
+        if (commandPowershell) {
+          commandPowershell.value =
+            (body && body.commands && body.commands.tcp && body.commands.tcp.powershell) ||
+            (body && body.commands && body.commands.http && body.commands.http.powershell) ||
+            ("Resolve-DnsName -Name " + target);
+        }
+        if (commandTelnet && port) commandTelnet.value = "telnet " + target + " " + port;
+        if (commandPython && port) commandPython.value = "python -c \"import socket; socket.create_connection(('" + target + "', " + port + "), timeout=5)\"";
+        if (commandNode && port) commandNode.value = "node -e \"require('net').createConnection({host:'" + target + "',port:" + port + ",timeout:5000},()=>console.log('open')).on('error',e=>console.log(e.code))\"";
+        if (commandGo && port) commandGo.value = "conn, err := net.DialTimeout(\"tcp\", \"" + target + ":" + port + "\", 5*time.Second)\nif err != nil { fmt.Println(err); return }\nconn.Close()";
+        if (commandRuby && port) commandRuby.value = "ruby -rsocket -e \"TCPSocket.new('" + target + "', " + port + ").close; puts 'open'\"";
+        if (commandPhp && port) commandPhp.value = "php -r '$s=@fsockopen(\"" + target + "\", " + port + ", $errno, $errstr, 5);\nif($s){fclose($s); echo \"open\\\\n\";} else {fwrite(STDERR, \"$errstr\\\\n\"); exit(1);}'";
+
+        hideLoading();
+      } catch (error) {
+        await logPromise.catch(() => {});
+        appendLog("[edge] ✗ network error: could not reach Kordu Probe", "err");
+        clearVerificationToken();
+        if (statusNode) statusNode.textContent = "The request failed before the check completed.";
+        console.error(error);
+      } finally {
+        submitBtn.classList.remove("is-loading");
+      }
+    });
+
+    // ─── Preset selector ───────────────────────────────────────
+    let activeCategory = null;
+
+    function flattenPresets(cats, filter) {
+      const q = (filter || "").toLowerCase();
+      const out = [];
+      for (const cat of cats) {
+        for (const item of cat.items) {
+          if (!q || item.name.toLowerCase().includes(q) || String(item.port).includes(q) || cat.label.toLowerCase().includes(q)) {
+            out.push({ ...item, category: cat.label, categoryId: cat.id });
+          }
+        }
+      }
+      return out;
+    }
+
+    function renderPresetCategories(cats, active) {
+      if (!presetCategoriesEl) return;
+      presetCategoriesEl.innerHTML = "";
+      const allBtn = document.createElement("button");
+      allBtn.type = "button";
+      allBtn.className = "probe-preset-cat" + (!active ? " is-active" : "");
+      allBtn.textContent = "All";
+      allBtn.addEventListener("click", () => { activeCategory = null; renderPresets(); });
+      presetCategoriesEl.appendChild(allBtn);
+      for (const cat of cats) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "probe-preset-cat" + (active === cat.id ? " is-active" : "");
+        btn.textContent = cat.label;
+        btn.addEventListener("click", () => { activeCategory = cat.id; renderPresets(); });
+        presetCategoriesEl.appendChild(btn);
+      }
+    }
+
+    function renderPresets() {
+      if (!presetListEl) return;
+      const q = presetSearch ? presetSearch.value : "";
+      let filtered = flattenPresets(presetCategories, q);
+      if (activeCategory) filtered = filtered.filter(p => p.categoryId === activeCategory);
+      renderPresetCategories(presetCategories, activeCategory);
+
+      presetListEl.innerHTML = "";
+      const maxVisible = 60;
+      const visible = filtered.slice(0, maxVisible);
+      for (const item of visible) {
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = "probe-preset-item";
+        row.innerHTML = '<span class="probe-preset-name">' + item.name + '</span>' +
+          '<span class="probe-preset-port">' + item.port + '</span>' +
+          '<span class="probe-preset-proto">' + item.proto + '</span>';
+        row.addEventListener("click", () => {
+          if (portInput) portInput.value = item.port;
+          closePresets();
+        });
+        presetListEl.appendChild(row);
+      }
+
+      if (presetCountEl) {
+        presetCountEl.textContent = filtered.length + " preset" + (filtered.length !== 1 ? "s" : "") + (filtered.length > maxVisible ? " · showing first " + maxVisible : "");
+      }
+    }
+
+    function openPresets() {
+      if (!presetPanel) return;
+      presetPanel.hidden = false;
+      if (presetTrigger) presetTrigger.setAttribute("aria-expanded", "true");
+      renderPresets();
+      if (presetSearch) { presetSearch.value = ""; presetSearch.focus(); }
+    }
+
+    function closePresets() {
+      if (!presetPanel) return;
+      presetPanel.hidden = true;
+      if (presetTrigger) presetTrigger.setAttribute("aria-expanded", "false");
+      activeCategory = null;
+    }
+
+    if (presetTrigger) presetTrigger.addEventListener("click", () => presetPanel && !presetPanel.hidden ? closePresets() : openPresets());
+    if (presetClose) presetClose.addEventListener("click", closePresets);
+    if (presetSearch) presetSearch.addEventListener("input", renderPresets);
+
+    // Close preset panel on Escape
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && presetPanel && !presetPanel.hidden) closePresets();
+    });
+
+    // Pre-warm invisible Turnstile on page load (non-compact only)
+    if (!isCompact) {
+      ensureTurnstileWidget().catch(() => {});
+    }
+  })();
+</script>
+
+<style>
+  .probe-shell {
+    position: relative;
+    display: grid;
+    gap: 1rem;
+    padding: 1.25rem;
+    border-radius: 24px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 20px 44px rgba(0, 0, 0, 0.06);
+  }
+
+  .probe-shell-compact {
+    border-radius: 18px;
+  }
+
+  .probe-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: start;
+    flex-wrap: wrap;
+  }
+
+  .probe-head-lead {
+    min-width: 0;
+  }
+
+  .probe-kicker {
+    margin: 0 0 0.25rem;
+    color: var(--muted-strong);
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .probe-head-summary {
+    margin: 0;
+    font-size: 0.98rem;
+    line-height: 1.45;
+    color: var(--muted-strong);
+    max-width: 44ch;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+
+  .probe-head-actions {
+    display: inline-flex;
+    gap: 0.4rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .probe-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 999px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: #ffffff;
+    color: var(--muted-strong);
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    transition: border-color 160ms ease, color 160ms ease, background 160ms ease, transform 160ms ease;
+  }
+
+  .probe-chip:hover {
+    color: var(--text);
+    border-color: rgba(0, 0, 0, 0.2);
+    transform: translateY(-1px);
+  }
+
+  .probe-chip:disabled {
+    opacity: 0.6;
+    cursor: wait;
+    transform: none;
+  }
+
+  .probe-chip-link {
+    background: transparent;
+  }
+
+  .probe-history-panel {
+    margin: 0;
+    padding: 0.9rem 1rem;
+    border-radius: 14px;
+    border: 1px dashed rgba(0, 0, 0, 0.12);
+    background: #fafafa;
+    animation: probe-slide-in 220ms ease both;
+  }
+
+  .probe-history-empty {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.88rem;
+  }
+
+  .probe-form {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .probe-input-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 132px 110px;
+    gap: 0.6rem;
+  }
+
+  .probe-input-row input {
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 14px;
+    background: #ffffff;
+    color: var(--text);
+    font: inherit;
+    padding: 0.9rem 1rem;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+  }
+
+  .probe-input-row input::placeholder {
+    color: var(--muted);
+  }
+
+  .probe-input-row input:focus {
+    outline: none;
+    border-color: rgba(0, 0, 0, 0.2);
+    box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.05);
+  }
+
+  .probe-submit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    border: 0;
+    border-radius: 14px;
+    background: #0a0a0a;
+    color: #ffffff;
+    font: inherit;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    padding: 0.9rem 1rem;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), 0 6px 14px rgba(0, 0, 0, 0.08);
+    transition: background 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+  }
+
+  .probe-submit:hover {
+    background: #1a1a1a;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12), 0 10px 22px rgba(0, 0, 0, 0.12);
+  }
+
+  .probe-submit:active {
+    transform: translateY(0);
+  }
+
+  .probe-submit-spinner {
+    display: none;
+    animation: probe-spin 900ms linear infinite;
+  }
+
+  .probe-submit.is-loading .probe-submit-label { display: none; }
+  .probe-submit.is-loading .probe-submit-spinner { display: inline-block; }
+
+  @keyframes probe-spin {
+    from { transform: rotate(0); }
+    to { transform: rotate(360deg); }
+  }
+
+  .probe-port-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .probe-port-pill {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 999px;
+    padding: 0.42rem 0.8rem;
+    background: #ffffff;
+    color: var(--text);
+    cursor: pointer;
+    font: inherit;
+    transition: background 160ms ease, color 160ms ease, border-color 160ms ease, transform 160ms ease;
+  }
+
+  .probe-port-num {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .probe-port-pill small {
+    color: var(--muted);
+    font-size: 0.72rem;
+    transition: color 160ms ease;
+  }
+
+  .probe-port-pill:hover {
+    background: #0a0a0a;
+    border-color: #0a0a0a;
+    color: #ffffff;
+    transform: translateY(-1px);
+  }
+
+  .probe-port-pill:hover small {
+    color: rgba(255, 255, 255, 0.72);
+  }
+
+  .probe-port-pill.is-pressed {
+    transform: scale(0.96);
+  }
+
+  .probe-preset-trigger {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.06), rgba(168, 85, 247, 0.06)) !important;
+    border-color: rgba(99, 102, 241, 0.16) !important;
+    color: #6366f1 !important;
+  }
+
+  .probe-preset-trigger:hover {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(168, 85, 247, 0.12)) !important;
+    border-color: rgba(99, 102, 241, 0.28) !important;
+    color: #4f46e5 !important;
+    transform: translateY(-1px);
+  }
+
+  .probe-preset-panel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    display: grid;
+    gap: 0;
+    border-radius: 22px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: saturate(180%) blur(28px);
+    -webkit-backdrop-filter: saturate(180%) blur(28px);
+    box-shadow:
+      0 4px 12px rgba(0, 0, 0, 0.06),
+      0 20px 48px rgba(0, 0, 0, 0.12),
+      0 0 0 1px rgba(0, 0, 0, 0.03);
+    overflow: hidden;
+    animation: probe-preset-in 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .probe-preset-panel[hidden] { display: none; }
+
+  @keyframes probe-preset-in {
+    from {
+      opacity: 0;
+      transform: scale(0.97) translateY(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  .probe-preset-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 0.75rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    background: rgba(250, 250, 250, 0.6);
+  }
+
+  .probe-preset-search-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .probe-preset-search-icon {
+    flex: none;
+    color: var(--muted);
+  }
+
+  .probe-preset-search {
+    flex: 1;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    font-size: 0.88rem;
+    color: var(--text);
+    outline: none;
+    min-width: 0;
+  }
+
+  .probe-preset-search::placeholder {
+    color: var(--muted);
+  }
+
+  .probe-preset-close {
+    flex: none;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: background 120ms ease, color 120ms ease;
+  }
+
+  .probe-preset-close:hover {
+    background: rgba(0, 0, 0, 0.06);
+    color: var(--text);
+  }
+
+  .probe-preset-categories {
+    display: flex;
+    gap: 0.3rem;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .probe-preset-categories::-webkit-scrollbar { display: none; }
+
+  /* Dynamic preset items styled in global block below */
+
+  .probe-turnstile-row {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .probe-loading {
+    animation: probe-slide-in 260ms ease both;
+  }
+
+  @keyframes probe-slide-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .terminal-window {
+    border-radius: 12px;
+    overflow: hidden;
+    background: #1d1d1f;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.08),
+      0 18px 38px rgba(0, 0, 0, 0.28),
+      0 2px 6px rgba(0, 0, 0, 0.18);
+  }
+
+  .terminal-head {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    height: 28px;
+    padding: 0 12px;
+    background: linear-gradient(180deg, #3a3a3d 0%, #2d2d30 100%);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.4);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  .terminal-lights {
+    display: inline-flex;
+    gap: 8px;
+    justify-self: start;
+    align-items: center;
+  }
+
+  .terminal-light {
+    width: 12px;
+    height: 12px;
+    border-radius: 999px;
+    box-shadow:
+      inset 0 0 0 0.5px rgba(0, 0, 0, 0.25),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+  }
+
+  .terminal-light-red { background: #ff5f57; }
+  .terminal-light-amber { background: #febc2e; }
+  .terminal-light-green { background: #28c840; }
+
+  .terminal-title {
+    justify-self: center;
+    color: rgba(255, 255, 255, 0.56);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  .terminal-spacer {
+    justify-self: end;
+  }
+
+  .terminal-body {
+    padding: 14px 16px 16px;
+    font-family: "SF Mono", "IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+    font-size: 12.5px;
+    line-height: 1.65;
+    min-height: 6.5rem;
+    max-height: 14rem;
+    overflow: auto;
+    color: #e5e5e7;
+  }
+
+  .terminal-body pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .terminal-body .log-cmd  { color: #ffffff; font-weight: 500; }
+  .terminal-body .log-info { color: #a1a1a6; }
+  .terminal-body .log-ok   { color: #34c759; font-weight: 500; }
+  .terminal-body .log-warn { color: #ff9500; }
+  .terminal-body .log-err  { color: #ff453a; }
+
+  .terminal-body span {
+    display: block;
+    animation: log-line-in 220ms ease both;
+  }
+
+  @keyframes log-line-in {
+    from { opacity: 0; transform: translateX(-4px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .probe-result {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .probe-status-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.75rem 1rem;
+    align-items: start;
+    padding: 0.85rem 1rem;
+    border-radius: 16px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(250, 250, 250, 0.96));
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 10px 24px rgba(0, 0, 0, 0.05);
+    min-height: 5.8rem;
+    transition: all 280ms ease;
+  }
+
+  /* ─── Initial idle state — minimal, no clutter ─── */
+  .probe-result.is-initial .probe-status-row {
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    min-height: 0;
+    padding: 0.45rem 0;
+  }
+
+  .probe-result.is-initial .probe-status-dot { display: none; }
+
+  .probe-result.is-initial .probe-status-label {
+    font-size: 0.82rem;
+    color: var(--muted);
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  .probe-result.is-initial .probe-status-body p { display: none; }
+  .probe-result.is-initial .probe-status-side { display: none; }
+  .probe-result.is-initial .probe-metric-grid { display: none; }
+  .probe-result.is-initial .probe-command-grid { display: none; }
+  .probe-result.is-initial .probe-command-grid-more { display: none; }
+  .probe-result.is-initial .probe-technical-details { display: none; }
+
+  .probe-status-main {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    min-width: 0;
+  }
+
+  .probe-status-dot {
+    width: 0.65rem;
+    height: 0.65rem;
+    border-radius: 999px;
+    background: var(--success);
+    box-shadow: 0 0 0 4px var(--success-soft);
+    flex: none;
+    transition: background 200ms ease, box-shadow 200ms ease;
+  }
+
+  .probe-status-dot[data-status="closed"] {
+    background: #ff3b30;
+    box-shadow: 0 0 0 4px rgba(255, 59, 48, 0.12);
+  }
+
+  .probe-status-dot[data-status="timeout"] {
+    background: #ff9500;
+    box-shadow: 0 0 0 4px rgba(255, 149, 0, 0.12);
+  }
+
+  .probe-status-body {
+    display: grid;
+    gap: 0.18rem;
+    min-width: 0;
+  }
+
+  .probe-status-label {
+    font-size: 0.9rem;
+    line-height: 1.2;
+    letter-spacing: 0.02em;
+    color: var(--text);
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .probe-status-body p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.84rem;
+    line-height: 1.45;
+    max-width: 54ch;
+  }
+
+  .probe-status-side {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.65rem;
+    align-self: start;
+    text-align: right;
+    font-size: 0.82rem;
+    color: var(--muted);
+    flex: none;
+  }
+
+  .probe-status-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.45rem 0.75rem;
+    border-radius: 999px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: rgba(255, 255, 255, 0.95);
+    color: var(--text);
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: border-color 160ms ease, transform 160ms ease, background 160ms ease;
+  }
+
+  .probe-status-action:hover {
+    border-color: rgba(0, 0, 0, 0.2);
+    background: #ffffff;
+    transform: translateY(-1px);
+  }
+
+  .probe-status-action[hidden] {
+    display: none;
+  }
+
+  .probe-metric-grid,
+  .probe-command-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem;
+  }
+
+  .probe-metric {
+    display: grid;
+    gap: 0.25rem;
+    padding: 0.95rem 1rem;
+    border-radius: 14px;
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+  }
+
+  .probe-metric span,
+  .probe-command-head span {
+    color: var(--muted);
+    font-size: 0.8rem;
+  }
+
+  .probe-metric strong {
+    font-size: 1rem;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .probe-command {
+    display: grid;
+    gap: 0.35rem;
+  }
+
+  .probe-command-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .probe-copy {
+    border: 0;
+    background: transparent;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--muted-strong);
+    cursor: pointer;
+    transition: background 120ms ease, color 120ms ease;
+  }
+
+  .probe-copy:hover {
+    background: rgba(0, 0, 0, 0.06);
+    color: var(--text);
+  }
+
+  .probe-copy.is-copied {
+    color: var(--success);
+  }
+
+  .probe-command textarea {
+    width: 100%;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    background: #fafafa;
+    color: var(--text);
+    padding: 0.7rem 0.8rem;
+    resize: none;
+    min-height: 5rem;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+  }
+
+  .probe-more-shells {
+    margin-top: 0.25rem;
+  }
+
+  .probe-more-shells > summary {
+    list-style: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.8rem;
+    border-radius: 999px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: #ffffff;
+    color: var(--muted-strong);
+    font-size: 0.82rem;
+    font-weight: 500;
+    user-select: none;
+    transition: border-color 160ms ease, color 160ms ease;
+  }
+
+  .probe-more-shells > summary::-webkit-details-marker { display: none; }
+  .probe-more-shells > summary::before {
+    content: "+";
+    font-weight: 600;
+    color: var(--muted);
+  }
+
+  .probe-more-shells[open] > summary::before { content: "−"; }
+
+  .probe-more-shells > summary:hover {
+    border-color: rgba(0, 0, 0, 0.2);
+    color: var(--text);
+  }
+
+  .probe-command-grid-more {
+    margin-top: 0.65rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .probe-technical-details {
+    margin-top: 0.15rem;
+  }
+
+  .probe-technical-details > summary {
+    list-style: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0;
+    color: var(--muted-strong);
+    font-size: 0.82rem;
+    font-weight: 500;
+    user-select: none;
+  }
+
+  .probe-technical-details > summary::-webkit-details-marker { display: none; }
+  .probe-technical-details > summary::before {
+    content: "+";
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  .probe-technical-details[open] > summary::before { content: "−"; }
+
+  .probe-technical-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem;
+    margin-top: 0.65rem;
+  }
+
+  .probe-technical-item {
+    display: grid;
+    gap: 0.2rem;
+    padding: 0.85rem 0.95rem;
+    border-radius: 12px;
+    background: #fafafa;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+  }
+
+  .probe-technical-item span {
+    color: var(--muted);
+    font-size: 0.76rem;
+  }
+
+  .probe-technical-item strong {
+    color: var(--text);
+    font-size: 0.92rem;
+    line-height: 1.45;
+  }
+
+  @media (max-width: 980px) {
+    .probe-input-row {
+      grid-template-columns: 1fr;
+    }
+
+    .probe-metric-grid,
+    .probe-command-grid,
+    .probe-command-grid-more {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .probe-status-row {
+      grid-template-columns: 1fr;
+    }
+
+    .probe-status-side {
+      justify-content: flex-start;
+      text-align: left;
+    }
+
+    .probe-status-side {
+      width: 100%;
+      justify-content: space-between;
+    }
+
+    .probe-technical-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .probe-metric-grid,
+    .probe-command-grid,
+    .probe-command-grid-more {
+      grid-template-columns: 1fr;
+    }
+
+    .probe-head-actions {
+      width: 100%;
+    }
+
+    .probe-chip {
+      flex: 1;
+      justify-content: center;
+    }
+
+    .probe-status-action {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .probe-preset-list {
+      max-height: 220px;
+    }
+
+    .probe-preset-categories {
+      padding: 0.4rem 0.5rem;
+    }
+  }
+</style>
+
+<style is:global>
+  .probe-preset-cat {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.3rem 0.6rem;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--muted-strong);
+    font: inherit;
+    font-size: 0.74rem;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 140ms ease;
+  }
+
+  .probe-preset-cat:hover {
+    background: rgba(0, 0, 0, 0.04);
+    color: var(--text);
+  }
+
+  .probe-preset-cat.is-active {
+    background: #0a0a0a;
+    color: #fff;
+    border-color: #0a0a0a;
+  }
+
+  .probe-preset-list {
+    max-height: 280px;
+    overflow-y: auto;
+    padding: 0.35rem;
+  }
+
+  .probe-preset-item {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 0.5rem;
+    align-items: center;
+    width: 100%;
+    padding: 0.55rem 0.65rem;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--text);
+    font: inherit;
+    font-size: 0.84rem;
+    cursor: pointer;
+    text-align: left;
+    transition: background 100ms ease;
+  }
+
+  .probe-preset-item:hover {
+    background: rgba(0, 0, 0, 0.04);
+  }
+
+  .probe-preset-item:active {
+    background: rgba(0, 0, 0, 0.07);
+  }
+
+  .probe-preset-name {
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .probe-preset-port {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: #6366f1;
+    background: rgba(99, 102, 241, 0.08);
+    padding: 0.15rem 0.45rem;
+    border-radius: 6px;
+  }
+
+  .probe-preset-proto {
+    font-size: 0.7rem;
+    color: var(--muted);
+    font-weight: 500;
+    min-width: 3rem;
+    text-align: right;
+  }
+
+  .probe-preset-count {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.72rem;
+    color: var(--muted);
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    background: rgba(250, 250, 250, 0.5);
+  }
+
+  @media (max-width: 560px) {
+    .probe-preset-list {
+      max-height: 220px;
+    }
+  }
+</style>

@@ -1,0 +1,57 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import ProbeForm from "../components/ProbeForm.astro";
+---
+
+<BaseLayout
+  title="Port Checker | Kordu Probe"
+  description="Check hostnames, IPs, ports, DNS, and web reachability from the public internet with copyable commands and plain-English explanations."
+>
+  <section class="site-shell page-title">
+    <p class="eyebrow">Port Checker</p>
+    <h1 class="page-heading">Check ports, domains, and public reachability in one place.</h1>
+    <p class="page-lead">
+      Enter a public hostname or IP, optionally pick a port, and Kordu Probe combines TCP, DNS,
+      HTTP/HTTPS, and IP metadata into one clean answer. If you do specify a port, you still get
+      the traditional open / closed / timeout semantics for the TCP path.
+    </p>
+  </section>
+
+  <section class="site-shell section">
+    <div class="two-column">
+      <ProbeForm heading="Run a public connectivity check" showCommands />
+      <aside class="page-card interpretation-card">
+        <p class="eyebrow">Interpretation</p>
+        <h2 class="page-card-heading">What each result means</h2>
+        <ul class="status-list">
+          <li>
+            <span class="status-dot status-dot-open" aria-hidden="true"></span>
+            <div>
+              <strong>Open</strong>
+              <p>The TCP handshake completed. The service on that port accepted the connection.</p>
+            </div>
+          </li>
+          <li>
+            <span class="status-dot status-dot-closed" aria-hidden="true"></span>
+            <div>
+              <strong>Closed</strong>
+              <p>The target explicitly refused the connection. The host is reachable, the port isn't listening.</p>
+            </div>
+          </li>
+          <li>
+            <span class="status-dot status-dot-timeout" aria-hidden="true"></span>
+            <div>
+              <strong>Timeout</strong>
+              <p>The handshake never completed within the budget. Usually filtering, packet drops, or an unreachable host.</p>
+            </div>
+          </li>
+        </ul>
+        <p class="page-card-footnote">
+          Kordu intentionally reports <code>timeout</code> rather than over-claiming packet-level
+          certainty. For deeper diagnostics, copy the shell commands on the left and run them
+          against your own vantage point.
+        </p>
+      </aside>
+    </div>
+  </section>
+</BaseLayout>

@@ -1,0 +1,4 @@
+# Protect repository policy files and keep maintainer review explicit.
+* @Iydah
+/.github/ @Iydah
+/docs/ @Iydah

@@ -1,0 +1,32 @@
+name: Feature request
+description: Propose a new feature or workflow improvement.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What problem would this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: Describe the change you want.
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints and risk
+      description: Abuse risk, operational cost, compatibility impact, or rollout concerns maintainers should evaluate.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: markdown
+    attributes:
+      value: |
+        Larger feature work should usually be discussed before implementation. Curated project direction is intentional, and maintainers may decline technically sound proposals that expand abuse surface, operational complexity, or product scope.

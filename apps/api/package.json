@@ -1,0 +1,22 @@
+{
+  "name": "@kordu-probe/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit",
+    "dev": "wrangler dev",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@hono/zod-validator": "0.7.6",
+    "@kordu-probe/shared": "0.1.0",
+    "hono": "4.12.14",
+    "zod": "4.3.6"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "4.20260422.1",
+    "wrangler": "4.84.1"
+  }
+}

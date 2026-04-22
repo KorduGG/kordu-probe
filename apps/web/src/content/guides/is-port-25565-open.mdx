@@ -1,0 +1,18 @@
+---
+title: Is port 25565 open
+description: What port 25565 results usually mean for Minecraft servers and why timeouts are different from explicit refusals.
+publishedAt: "2026-04-22"
+---
+
+Port `25565` is the default public listener for Minecraft Java servers. People searching this question usually want a fast answer to one problem: can other players actually reach the server from the public internet?
+
+## Interpreting results
+
+- `open`: the handshake completed from the probe vantage.
+- `closed`: the host responded, but nothing accepted the connection on that port.
+- `timeout`: the handshake never completed, which often means a firewall, NAT problem, or a stale DNS target.
+
+## Best next step
+
+Run the Kordu Probe check first, then compare that with a local listener check on the server itself. That tells you whether the issue is on the service host or between the host and the internet.
+

@@ -1,0 +1,24 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import ProbeForm from "../../components/ProbeForm.astro";
+---
+
+<BaseLayout
+  title="TCP Port Checker Tool | Kordu Probe"
+  description="Use Kordu Probe as a public connectivity checker with TCP, DNS, HTTP/HTTPS, and IP metadata, while still supporting focused TCP port checks."
+>
+  <div class="site-shell page-title">
+    <p class="eyebrow">Tool Surface</p>
+    <h1>Connectivity checker tool for quick public reachability checks.</h1>
+    <p>
+      This tool page is tuned for transactional intent: run the check, see the status, and move
+      immediately into follow-up TCP, DNS, or HTTP commands if you need independent confirmation.
+    </p>
+  </div>
+  <div class="site-shell section">
+    <ProbeForm
+      heading="Check from the public internet"
+      summary="Use the checker below when you need a clean external answer across ports, DNS, and web reachability without SSHing into another box first."
+    />
+  </div>
+</BaseLayout>

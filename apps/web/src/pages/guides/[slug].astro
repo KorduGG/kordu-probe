@@ -1,0 +1,41 @@
+---
+import { getCollection, render, type CollectionEntry } from "astro:content";
+
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Breadcrumbs from "../../components/Breadcrumbs.astro";
+
+export async function getStaticPaths() {
+  const entries = await getCollection("guides");
+  return entries.map((entry: CollectionEntry<"guides">) => ({
+    params: {
+      slug: entry.id
+    },
+    props: {
+      entry
+    }
+  }));
+}
+
+const { entry } = Astro.props as { entry: CollectionEntry<"guides"> };
+const { Content } = await render(entry);
+---
+
+<BaseLayout title={`${entry.data.title} | Kordu Probe`} description={entry.data.description}>
+  <div class="site-shell page-title">
+    <Breadcrumbs
+      items={[
+        { name: "Home", href: "/" },
+        { name: "Guides", href: "/guides/how-to-port-forward-minecraft" },
+        { name: entry.data.title, href: `/guides/${entry.id}` }
+      ]}
+    />
+    <p class="eyebrow">Guide</p>
+    <h1>{entry.data.title}</h1>
+    <p>{entry.data.description}</p>
+  </div>
+  <div class="site-shell section">
+    <article class="page-card">
+      <Content />
+    </article>
+  </div>
+</BaseLayout>

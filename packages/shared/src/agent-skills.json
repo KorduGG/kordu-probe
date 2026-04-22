@@ -1,0 +1,17 @@
+[
+  {
+    "name": "tcp-probe",
+    "description": "Run unified Kordu Probe checks and interpret TCP, DNS, HTTP, and IP module results.",
+    "fileName": "tcp-probe.md"
+  },
+  {
+    "name": "port-reference",
+    "description": "Discover curated port reference pages and what each port is commonly used for.",
+    "fileName": "port-reference.md"
+  },
+  {
+    "name": "api-discovery",
+    "description": "Find the public API catalog, OpenAPI schema, docs, and the primary /api/check endpoint.",
+    "fileName": "api-discovery.md"
+  }
+]

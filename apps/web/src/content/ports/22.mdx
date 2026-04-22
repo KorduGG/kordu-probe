@@ -1,0 +1,19 @@
+---
+title: Port 22 checker
+description: Check whether SSH on port 22 is reachable from the public internet and understand the usual reasons it is blocked.
+port: 22
+service: SSH
+---
+
+Port `22` usually means SSH. If it times out publicly, that is often intentional. Many operators restrict SSH to VPNs, private ranges, or bastion hosts.
+
+## Common uses
+
+- Remote Linux shell access
+- Git over SSH
+- Infrastructure automation
+
+## When a timeout is normal
+
+Many production systems deliberately drop unsolicited SSH traffic. That does not mean the host is broken. It may mean your access model is working as designed.
+

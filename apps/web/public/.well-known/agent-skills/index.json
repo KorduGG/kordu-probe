@@ -1,0 +1,26 @@
+{
+  "$schema": "https://schemas.agentskills.io/discovery/0.2.0/schema.json",
+  "skills": [
+    {
+      "name": "tcp-probe",
+      "type": "skill-md",
+      "description": "Run unified Kordu Probe checks and interpret TCP, DNS, HTTP, and IP module results.",
+      "url": "https://probe.kordu.tools/.well-known/agent-skills/tcp-probe.md",
+      "digest": "sha256:aac10e45c5c72855e64c340f0ed2b77ecdba716bc9d3c44691415a69f6efa429"
+    },
+    {
+      "name": "port-reference",
+      "type": "skill-md",
+      "description": "Discover curated port reference pages and what each port is commonly used for.",
+      "url": "https://probe.kordu.tools/.well-known/agent-skills/port-reference.md",
+      "digest": "sha256:031fdd7395fd2018a0164e6e7690eea757042e02c144f97d162d040c06631465"
+    },
+    {
+      "name": "api-discovery",
+      "type": "skill-md",
+      "description": "Find the public API catalog, OpenAPI schema, docs, and the primary /api/check endpoint.",
+      "url": "https://probe.kordu.tools/.well-known/agent-skills/api-discovery.md",
+      "digest": "sha256:cddbf332136997cc17e41faf004d1cfdf009a6cccec34bdebcf4fd76a230034b"
+    }
+  ]
+}

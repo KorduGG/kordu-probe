@@ -1,0 +1,19 @@
+---
+title: Port 80 checker
+description: Check whether HTTP on port 80 is reachable and understand why some sites keep it open only for redirects.
+port: 80
+service: HTTP
+---
+
+Port `80` is still common even on HTTPS-first sites because operators often keep it open solely to redirect users to `443`.
+
+## Common uses
+
+- Plain HTTP sites
+- Redirect-to-HTTPS entrypoints
+- Legacy service checks
+
+## Follow-up
+
+If Kordu Probe says `open`, that means the socket answered. You still need an HTTP request if you want to validate redirects, headers, or status codes.
+

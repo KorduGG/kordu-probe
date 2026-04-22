@@ -1,0 +1,42 @@
+name: Bug report
+description: Report a reproducible problem in Kordu Probe.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Exact steps, inputs, and environment details.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Hosted service or local? Include OS, browser or CLI, Bun version, and any Cloudflare or network context that matters.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: Who is affected and how severe is it?
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation
+      description: Logs, screenshots, failing tests, or traces.

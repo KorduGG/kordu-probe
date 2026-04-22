@@ -1,0 +1,22 @@
+---
+title: Port 25565 checker
+description: Check whether the default Minecraft Java server port is externally reachable and understand the usual router and firewall failure modes.
+port: 25565
+service: Minecraft Java
+---
+
+Port `25565` is the default public listener for Minecraft Java servers, which makes it one of the highest-intent public port checks.
+
+## Common uses
+
+- Minecraft Java servers
+- Home-lab game servers
+- Community servers behind residential routers
+
+## Typical failure points
+
+- Wrong public IP or DNS target
+- Router forwards to the wrong internal machine
+- Host firewall is blocking inbound TCP `25565`
+- The Minecraft process is not actually listening
+

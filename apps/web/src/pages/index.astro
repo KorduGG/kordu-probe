@@ -1,0 +1,200 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import ProbeForm from "../components/ProbeForm.astro";
+
+type FeatureIcon = "bolt" | "brackets" | "terminal" | "globe";
+
+const featureRibbon: { icon: FeatureIcon; title: string; copy: string }[] = [
+  { icon: "bolt", title: "Realtime checks", copy: "Instant results, globally." },
+  { icon: "brackets", title: "API-first", copy: "RESTful API built for scale." },
+  { icon: "terminal", title: "curl-ready", copy: "Simple CLI and automation." },
+  { icon: "globe", title: "Machine-readable", copy: "OpenAPI, catalogs, agent skills." }
+];
+
+const webApplicationSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Kordu Probe",
+  applicationCategory: "DeveloperApplication",
+  operatingSystem: "Any",
+  description:
+    "Public TCP port checks with plain-English explanations, copyable terminal commands, and searchable guides.",
+  url: new URL("/", Astro.site).toString()
+};
+---
+
+<BaseLayout
+  title="Kordu Probe | Check any port with clarity"
+  description="Fast, accurate public TCP port checks with API access, curl support, and diagnostics that are readable in seconds."
+>
+  <section class="site-shell hero">
+    <div class="hero-grid">
+      <div class="hero-copy">
+        <h1>
+          Check any port
+          <span class="headline-sub">with complete clarity.</span>
+        </h1>
+        <p class="lead">
+          Fast, accurate port checks with API access, curl support, and clean diagnostics for developers,
+          gamers, and infrastructure teams.
+        </p>
+        <div class="hero-actions">
+          <a class="button" href="/port-checker">
+            Start checking
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M5 12h14M13 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </a>
+          <a class="button-ghost" href="/docs/api">View API</a>
+        </div>
+        <div class="hero-meta">
+          <span class="meta-item">IPv4</span>
+          <span class="meta-item">IPv6</span>
+          <span class="meta-item">TCP</span>
+          <span class="meta-item">HTTP</span>
+          <span class="meta-item">HTTPS</span>
+        </div>
+      </div>
+
+      <div class="hero-stage">
+        <div class="hero-console">
+          <ProbeForm heading="Port check" compact />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="site-shell section" id="features">
+    <div class="feature-ribbon">
+      {featureRibbon.map((item) => (
+        <article class="feature-ribbon-item">
+          <span class="feature-ribbon-icon" aria-hidden="true">
+            {item.icon === "bolt" && (
+              <svg viewBox="0 0 24 24"><path d="M13 3 4 14h6l-1 7 9-11h-6l1-7Z" /></svg>
+            )}
+            {item.icon === "brackets" && (
+              <svg viewBox="0 0 24 24"><path d="m9 8-5 4 5 4M15 8l5 4-5 4M13 5l-2 14" /></svg>
+            )}
+            {item.icon === "terminal" && (
+              <svg viewBox="0 0 24 24"><path d="m5 8 4 4-4 4M12 17h7M4 4h16v16H4z" /></svg>
+            )}
+            {item.icon === "globe" && (
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c2.5 3 3.8 6 3.8 9s-1.3 6-3.8 9c-2.5-3-3.8-6-3.8-9S9.5 6 12 3Z" /></svg>
+            )}
+          </span>
+          <div class="feature-ribbon-label">{item.title}</div>
+          <div class="feature-ribbon-copy">{item.copy}</div>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <section class="site-shell section">
+    <div class="section-header">
+      <div>
+        <p class="section-kicker">Product depth</p>
+        <h2>Built for people who need the answer fast and the raw details immediately after.</h2>
+      </div>
+    </div>
+
+    <div class="feature-grid">
+      <article class="feature-panel">
+        <div class="feature-preview feature-preview-dashboard">
+          <div class="dashboard-sidebar">
+            <span class="dashboard-brand">Kordu Probe</span>
+            <span>Overview</span>
+            <span>Port checks</span>
+            <span>History</span>
+            <span>API keys</span>
+          </div>
+          <div class="dashboard-canvas">
+            <div class="dashboard-topline">Live diagnostics</div>
+            <div class="dashboard-map">
+              <span class="dashboard-node" style="left: 20%; top: 55%;"></span>
+              <span class="dashboard-node" style="left: 48%; top: 35%;"></span>
+              <span class="dashboard-node" style="left: 71%; top: 45%;"></span>
+              <span class="dashboard-node" style="left: 82%; top: 62%;"></span>
+              <span class="dashboard-arc" style="left: 20%; top: 52%; width: 30%; transform: rotate(-14deg);"></span>
+              <span class="dashboard-arc" style="left: 47%; top: 35%; width: 25%; transform: rotate(9deg);"></span>
+              <span class="dashboard-arc" style="left: 49%; top: 43%; width: 36%; transform: rotate(24deg);"></span>
+            </div>
+            <div class="dashboard-table">
+              <span>93.184.216.34 : 443</span>
+              <strong>OPEN</strong>
+              <span>18.4 ms</span>
+            </div>
+          </div>
+        </div>
+        <div>
+          <p class="section-kicker">Port Scanner</p>
+          <h3>Realtime diagnostics with a landing page that feels like a real product.</h3>
+        </div>
+        <ul class="feature-list">
+          <li>Focused single-port checks for the exact service you care about</li>
+          <li>Curated pages for ports like `22`, `443`, `25565`, and `3389`</li>
+          <li>Readable explanations instead of packet-capture jargon</li>
+        </ul>
+      </article>
+
+      <article class="feature-panel feature-panel-dark">
+        <div class="feature-preview feature-preview-response">
+          <div class="response-head">
+            <strong>Response</strong>
+            <span>200 OK</span>
+          </div>
+          <pre>{`{
+  "ip": "93.184.216.34",
+  "port": 443,
+  "status": "open",
+  "protocol": "tcp",
+  "service": "https",
+  "latency_ms": 18.4,
+  "region": "AMS, NL"
+}`}</pre>
+        </div>
+        <div>
+          <p class="section-kicker">Developer-first API</p>
+          <h3>Clean JSON responses, stable metadata, and documented discovery surfaces.</h3>
+        </div>
+        <ul class="feature-list">
+          <li>Predictable status, latency, and service fields on every response</li>
+          <li>OpenAPI, api-catalog, and agent-skill metadata ready to consume</li>
+        </ul>
+      </article>
+
+      <article class="feature-panel">
+        <div class="feature-preview feature-preview-terminal">
+          <div class="terminal-head">
+            <strong>Terminal</strong>
+            <span>cURL</span>
+          </div>
+          <pre>{`$ curl https://probe.kordu.tools/api/probe \
+  -H "Content-Type: application/json" \
+  -d '{"target":"93.184.216.34","port":443,"turnstileToken":"<token>"}'
+
+{
+  "status": "open",
+  "latencyMs": 18.4,
+  "target": "93.184.216.34"
+}`}</pre>
+        </div>
+        <div>
+          <p class="section-kicker">curl & CLI ready</p>
+          <h3>Every check points straight to the terminal command you can run next.</h3>
+        </div>
+        <ul class="feature-list">
+          <li>Quick shell confirmation after the web check</li>
+          <li>Useful for home labs, game servers, and production services</li>
+        </ul>
+      </article>
+    </div>
+
+    <div class="open-source-strip" id="open-source">
+      <a href="/LICENSE">MIT licensed</a>
+      <span>Runs on Cloudflare's global edge</span>
+      <a href="/.well-known/agent-skills/index.json">Agent-ready metadata</a>
+    </div>
+  </section>
+
+  <script is:inline type="application/ld+json" set:html={JSON.stringify(webApplicationSchema)} />
+</BaseLayout>

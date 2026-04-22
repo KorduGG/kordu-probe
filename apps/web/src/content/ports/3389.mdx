@@ -1,0 +1,19 @@
+---
+title: Port 3389 checker
+description: Check whether Remote Desktop on port 3389 is visible publicly and why exposing it directly is often a deliberate security risk.
+port: 3389
+service: Remote Desktop
+---
+
+Port `3389` is usually associated with Microsoft Remote Desktop. Public exposure is common in smaller setups and strongly discouraged in many production environments.
+
+## Common uses
+
+- Windows administration
+- Jump hosts
+- Ad hoc support access
+
+## Security note
+
+An `open` result on `3389` is a visibility answer, not a recommendation. Many teams intentionally move RDP behind VPNs, Zero Trust access, or jump hosts.
+

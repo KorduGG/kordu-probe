@@ -1,0 +1,19 @@
+---
+title: Port 443 checker
+description: Check whether HTTPS on port 443 is externally reachable and why TCP openness does not guarantee TLS or application health.
+port: 443
+service: HTTPS
+---
+
+Port `443` is the default encrypted web port. It is one of the most common public checks because so many APIs and sites terminate TLS there.
+
+## Common uses
+
+- Secure websites
+- Public APIs
+- Reverse proxies and CDNs
+
+## Important nuance
+
+A TCP `open` result on `443` only proves the socket answered. It does not prove your certificate, origin routing, or application response is healthy.
+

@@ -1,0 +1,72 @@
+{
+  "name": "kordu-probe",
+  "main": "./src/index.ts",
+  "compatibility_date": "2026-04-22",
+  "compatibility_flags": ["nodejs_compat"],
+  "placement": {
+    "region": "aws:eu-west-2"
+  },
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": "../web/dist",
+    "not_found_handling": "404-page",
+    "run_worker_first": [
+      "/api/*",
+      "/.well-known/api-catalog"
+    ]
+  },
+  "routes": [
+    {
+      "pattern": "probe.kordu.tools",
+      "custom_domain": true
+    }
+  ],
+  "vars": {
+    "CANONICAL_VANTAGE_ID": "canonical-edge-lhr",
+    "CANONICAL_VANTAGE_LABEL": "Canonical Cloudflare vantage near London",
+    "CANONICAL_VANTAGE_REGION": "aws:eu-west-2",
+    "TURNSTILE_EXPECTED_HOSTNAME": "probe.kordu.tools"
+  },
+  "analytics_engine_datasets": [
+    {
+      "binding": "PROBE_ANALYTICS",
+      "dataset": "kordu_probe"
+    }
+  ],
+  "ratelimits": [
+    {
+      "name": "CHECK_RATE_LIMIT_LIGHT",
+      "namespace_id": "20260423",
+      "simple": {
+        "limit": 120,
+        "period": 60
+      }
+    },
+    {
+      "name": "CHECK_RATE_LIMIT_STANDARD",
+      "namespace_id": "20260424",
+      "simple": {
+        "limit": 60,
+        "period": 60
+      }
+    },
+    {
+      "name": "CHECK_RATE_LIMIT_HEAVY",
+      "namespace_id": "20260425",
+      "simple": {
+        "limit": 20,
+        "period": 60
+      }
+    },
+    {
+      "name": "PROBE_RATE_LIMITER",
+      "namespace_id": "20260422",
+      "simple": {
+        "limit": 30,
+        "period": 60
+      }
+    }
+  ]
+}
