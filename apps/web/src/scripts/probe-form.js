@@ -101,6 +101,9 @@
 
   let turnstileWidgetId = null;
   let turnstileReadyPromise = null;
+  let resolveTurnstileToken = null;
+  let awaitingTurnstileToken = false;
+  let activeCategory = null;
 
   function setPresentation(presentation) {
     resultBadge.textContent = presentation.badge;
@@ -185,6 +188,31 @@
     return turnstileReadyPromise;
   }
 
+  function settleTurnstileToken(token) {
+    if (!awaitingTurnstileToken) return;
+    awaitingTurnstileToken = false;
+    tokenInput.value = token || "";
+    if (resolveTurnstileToken) {
+      const resolve = resolveTurnstileToken;
+      resolveTurnstileToken = null;
+      resolve(token || "");
+    }
+  }
+
+  function waitForTurnstileToken(timeoutMs) {
+    awaitingTurnstileToken = true;
+    tokenInput.value = "";
+    return new Promise((resolve) => {
+      resolveTurnstileToken = resolve;
+      window.setTimeout(() => {
+        if (!awaitingTurnstileToken) return;
+        awaitingTurnstileToken = false;
+        resolveTurnstileToken = null;
+        resolve("");
+      }, timeoutMs);
+    });
+  }
+
   async function ensureTurnstileWidget() {
     if (!turnstileContainer) return null;
 
@@ -199,13 +227,13 @@
       action: "probe",
       size: "invisible",
       callback(token) {
-        tokenInput.value = token;
+        settleTurnstileToken(token);
       },
       "expired-callback"() {
-        tokenInput.value = "";
+        settleTurnstileToken("");
       },
       "error-callback"() {
-        tokenInput.value = "";
+        settleTurnstileToken("");
       }
     });
 
@@ -215,21 +243,19 @@
   async function obtainToken() {
     try {
       await ensureTurnstileWidget();
+      const tokenPromise = waitForTurnstileToken(12000);
       if (turnstileWidgetId !== null && window.turnstile) {
         window.turnstile.reset(turnstileWidgetId);
       }
-      // Wait for the invisible challenge to resolve
-      const start = Date.now();
-      while (!tokenInput.value && Date.now() - start < 12000) {
-        await new Promise(r => setTimeout(r, 150));
-      }
-      return !!tokenInput.value;
+      return !!(await tokenPromise);
     } catch (e) {
       return false;
     }
   }
 
   function clearVerificationToken() {
+    awaitingTurnstileToken = false;
+    resolveTurnstileToken = null;
     tokenInput.value = "";
     if (turnstileWidgetId !== null && window.turnstile) {
       window.turnstile.reset(turnstileWidgetId);
@@ -572,11 +598,9 @@
       if (commandTelnet && port) commandTelnet.value = "telnet " + target + " " + port;
       if (commandPython && port) commandPython.value = "python -c \"import socket; socket.create_connection(('" + target + "', " + port + "), timeout=5)\"";
       if (commandNode && port) commandNode.value = "node -e \"require('net').createConnection({host:'" + target + "',port:" + port + ",timeout:5000},()=>console.log('open')).on('error',e=>console.log(e.code))\"";
-      if (commandGo && port) commandGo.value = "conn, err := net.DialTimeout(\"tcp\", \"" + target + ":" + port + "\", 5*time.Second)\nif err != nil { fmt.Println(err); return }\nconn.Close()";
+      if (commandGo && port) commandGo.value = "conn, err := net.DialTimeout(\"tcp\", net.JoinHostPort(\"" + target + "\", \"" + port + "\"), 5*time.Second)\nif err != nil { fmt.Println(err); return }\nconn.Close()";
       if (commandRuby && port) commandRuby.value = "ruby -rsocket -e \"TCPSocket.new('" + target + "', " + port + ").close; puts 'open'\"";
       if (commandPhp && port) commandPhp.value = "php -r '$s=@fsockopen(\"" + target + "\", " + port + ", $errno, $errstr, 5);\nif($s){fclose($s); echo \"open\\\\n\";} else {fwrite(STDERR, \"$errstr\\\\n\"); exit(1);}'";
-
-      hideLoading();
     } catch (error) {
       await logPromise.catch(() => {});
       appendLog("[edge] ✗ network error: could not reach Kordu Probe", "err");
@@ -584,13 +608,12 @@
       if (statusNode) statusNode.textContent = "The request failed before the check completed.";
       console.error(error);
     } finally {
+      hideLoading();
       submitBtn.classList.remove("is-loading");
     }
   });
 
   // ─── Preset selector ───────────────────────────────────────
-  let activeCategory = null;
-
   function flattenPresets(cats, filter) {
     const q = (filter || "").toLowerCase();
     const out = [];
@@ -604,23 +627,41 @@
     return out;
   }
 
-  function renderPresetCategories(cats, active) {
+  function syncPresetCategoryState() {
     if (!presetCategoriesEl) return;
+    presetCategoriesEl.querySelectorAll(".probe-preset-cat").forEach((button) => {
+      const categoryId = button.dataset.categoryId || "";
+      const isActive = categoryId ? activeCategory === categoryId : !activeCategory;
+      button.classList.toggle("is-active", isActive);
+    });
+  }
+
+  function renderPresetCategories(cats) {
+    if (!presetCategoriesEl) return;
+    if (presetCategoriesEl.childElementCount > 0) {
+      syncPresetCategoryState();
+      return;
+    }
+
     presetCategoriesEl.innerHTML = "";
     const allBtn = document.createElement("button");
     allBtn.type = "button";
-    allBtn.className = "probe-preset-cat" + (!active ? " is-active" : "");
+    allBtn.className = "probe-preset-cat";
+    allBtn.dataset.categoryId = "";
     allBtn.textContent = "All";
     allBtn.addEventListener("click", () => { activeCategory = null; renderPresets(); });
     presetCategoriesEl.appendChild(allBtn);
     for (const cat of cats) {
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.className = "probe-preset-cat" + (active === cat.id ? " is-active" : "");
+      btn.className = "probe-preset-cat";
+      btn.dataset.categoryId = cat.id;
       btn.textContent = cat.label;
       btn.addEventListener("click", () => { activeCategory = cat.id; renderPresets(); });
       presetCategoriesEl.appendChild(btn);
     }
+
+    syncPresetCategoryState();
   }
 
   function renderPresets() {
@@ -628,7 +669,7 @@
     const q = presetSearch ? presetSearch.value : "";
     let filtered = flattenPresets(presetCategories, q);
     if (activeCategory) filtered = filtered.filter(p => p.categoryId === activeCategory);
-    renderPresetCategories(presetCategories, activeCategory);
+    renderPresetCategories(presetCategories);
 
     presetListEl.innerHTML = "";
     const maxVisible = 60;
@@ -656,8 +697,8 @@
     if (!presetPanel) return;
     presetPanel.hidden = false;
     if (presetTrigger) presetTrigger.setAttribute("aria-expanded", "true");
-    renderPresets();
     if (presetSearch) { presetSearch.value = ""; presetSearch.focus(); }
+    renderPresets();
   }
 
   function closePresets() {
