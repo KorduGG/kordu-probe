@@ -87,7 +87,6 @@ describe("web build outputs", () => {
     expect(indexHtml).not.toContain('const form = document.getElementById("probe-form");');
     expect(indexHtml).toMatch(/<script type="module" src="\/_astro\/[^"]+"><\/script>/);
   });
-
   it("keeps homepage discovery and security headers in the static headers file", () => {
     const headers = readFileSync(path.join(webRoot, "public", "_headers"), "utf8");
     const blocks = getHeaderBlocks(headers);
