@@ -225,7 +225,7 @@
     turnstileWidgetId = turnstile.render("#probe-turnstile-container", {
       sitekey: turnstileContainer.dataset.sitekey,
       action: "probe",
-      size: "invisible",
+      execution: "execute",
       callback(token) {
         settleTurnstileToken(token);
       },
@@ -242,11 +242,15 @@
 
   async function obtainToken() {
     try {
-      await ensureTurnstileWidget();
-      const tokenPromise = waitForTurnstileToken(12000);
-      if (turnstileWidgetId !== null && window.turnstile) {
-        window.turnstile.reset(turnstileWidgetId);
+      const turnstile = await ensureTurnstileWidget();
+      if (!turnstile || turnstileWidgetId === null) {
+        return false;
       }
+
+      const tokenPromise = waitForTurnstileToken(12000);
+      turnstile.reset(turnstileWidgetId);
+      turnstile.execute(turnstileWidgetId);
+
       return !!(await tokenPromise);
     } catch (e) {
       return false;

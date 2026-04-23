@@ -66,6 +66,9 @@ describe("web build outputs", () => {
 
   it("keeps the generated CSP compatible with the live Google Tag Gateway stack", () => {
     const indexHtml = readFileSync(path.join(distRoot, "index.html"), "utf8");
+    expect(indexHtml).toContain(
+      "script-src 'self' https://challenges.cloudflare.com https://*.googletagmanager.com https://www.clarity.ms https://scripts.clarity.ms https://analytics.ahrefs.com"
+    );
     expect(indexHtml).toContain("https://*.googletagmanager.com");
     expect(indexHtml).toContain("https://*.google-analytics.com");
     expect(indexHtml).toContain("https://*.analytics.google.com");
@@ -93,6 +96,7 @@ describe("web build outputs", () => {
     expect(runtimeAsset).not.toContain("while(!tokenInput.value");
     expect(runtimeAsset).not.toContain("while (!tokenInput.value");
   });
+
   it("keeps homepage discovery and security headers in the static headers file", () => {
     const headers = readFileSync(path.join(webRoot, "public", "_headers"), "utf8");
     const blocks = getHeaderBlocks(headers);

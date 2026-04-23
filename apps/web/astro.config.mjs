@@ -99,6 +99,7 @@ export default defineConfig({
           "https://challenges.cloudflare.com",
           "https://*.googletagmanager.com",
           "https://www.clarity.ms",
+          "https://scripts.clarity.ms",
           "https://analytics.ahrefs.com"
         ],
         hashes: googleTagGatewayScriptHashes
