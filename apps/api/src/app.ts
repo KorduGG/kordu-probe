@@ -170,6 +170,22 @@ function rateHeaders(tier: RateLimitTier, cost: number): ResponseHeaders {
   };
 }
 
+function getAnalyticsSampleRate(env: AppBindings): number {
+  const raw = env.ANALYTICS_SAMPLE_RATE;
+
+  if (!raw) {
+    return 0;
+  }
+
+  const parsed = Number(raw);
+
+  if (!Number.isFinite(parsed)) {
+    return 0;
+  }
+
+  return Math.min(1, Math.max(0, parsed));
+}
+
 function parseResponseView(preferHeader: string | undefined, viewParam: string | null): ResponseView {
   if (viewParam === "full") return "full";
   if (viewParam === "minimal") return "minimal";
@@ -569,18 +585,22 @@ async function executeCheck(body: CheckRequest, deps: AppDeps, env: AppBindings)
     ...(Object.keys(commands).length > 0 ? { commands } : {})
   };
 
-  env.PROBE_ANALYTICS?.writeDataPoint({
-    indexes: [results.tcp?.status ?? "non-tcp"],
-    blobs: [
-      modules.join(","),
-      String(body.port ?? 0),
-      target.targetKind,
-      response.vantage.id
-    ],
-    doubles: [
-      results.tcp?.latencyMs ?? results.http?.latencyMs ?? 0
-    ]
-  });
+  const analyticsSampleRate = getAnalyticsSampleRate(env);
+
+  if (env.PROBE_ANALYTICS && analyticsSampleRate > 0 && Math.random() < analyticsSampleRate) {
+    env.PROBE_ANALYTICS.writeDataPoint({
+      indexes: [results.tcp?.status ?? "non-tcp"],
+      blobs: [
+        modules.join(","),
+        String(body.port ?? 0),
+        target.targetKind,
+        response.vantage.id
+      ],
+      doubles: [
+        results.tcp?.latencyMs ?? results.http?.latencyMs ?? 0
+      ]
+    });
+  }
 
   return response;
 }

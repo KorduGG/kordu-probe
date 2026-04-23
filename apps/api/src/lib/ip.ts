@@ -4,6 +4,8 @@ import { isIP } from "node:net";
 import { withTimeout } from "./timeouts";
 import type { IpCheckResult, RdapSummary, ResolvedTarget } from "../types";
 
+const RDAP_MAX_BYTES = 32_768;
+
 function createTimeoutSignal(timeoutMs: number): { signal: AbortSignal; cancel(): void } {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort("timeout"), timeoutMs);
@@ -13,6 +15,17 @@ function createTimeoutSignal(timeoutMs: number): { signal: AbortSignal; cancel()
       clearTimeout(timeout);
     }
   };
+}
+
+function contentLengthFrom(headers: Headers): number | null {
+  const raw = headers.get("content-length");
+
+  if (!raw || !/^\d+$/.test(raw)) {
+    return null;
+  }
+
+  const value = Number(raw);
+  return Number.isSafeInteger(value) ? value : null;
 }
 
 function trimString(value: unknown): string | null {
@@ -54,6 +67,65 @@ function mapRdap(data: Record<string, unknown>): RdapSummary {
   };
 }
 
+async function cancelResponseBody(response: Response): Promise<void> {
+  try {
+    await response.body?.cancel();
+  } catch {
+    // Best-effort cleanup only.
+  }
+}
+
+async function readBoundedJson(response: Response, maxBytes: number): Promise<Record<string, unknown> | null> {
+  const contentLength = contentLengthFrom(response.headers);
+
+  if (contentLength === null || contentLength > maxBytes || !response.body) {
+    await cancelResponseBody(response);
+    return null;
+  }
+
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+
+      if (done) {
+        break;
+      }
+
+      totalBytes += value.byteLength;
+
+      if (totalBytes > maxBytes) {
+        await reader.cancel();
+        return null;
+      }
+
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const buffer = new Uint8Array(totalBytes);
+  let offset = 0;
+
+  for (const chunk of chunks) {
+    buffer.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(new TextDecoder().decode(buffer));
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? parsed as Record<string, unknown>
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 async function fetchRdap(pathname: string, timeoutMs: number): Promise<RdapSummary | null> {
   const timeout = createTimeoutSignal(timeoutMs);
 
@@ -66,10 +138,16 @@ async function fetchRdap(pathname: string, timeoutMs: number): Promise<RdapSumma
     });
 
     if (!response.ok) {
+      await cancelResponseBody(response);
       return null;
     }
 
-    const payload: Record<string, unknown> = await response.json();
+    const payload = await readBoundedJson(response, RDAP_MAX_BYTES);
+
+    if (!payload) {
+      return null;
+    }
+
     return mapRdap(payload);
   } catch {
     return null;

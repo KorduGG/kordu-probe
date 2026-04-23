@@ -175,6 +175,7 @@ export type TurnstileVerificationInput = {
   remoteIp: string | null;
   expectedHostname?: string;
   expectedAction?: string;
+  timeoutMs?: number;
 };
 
 export type RateLimitBinding = {
@@ -195,6 +196,7 @@ export type AppBindings = {
   CANONICAL_VANTAGE_ID?: string;
   CANONICAL_VANTAGE_LABEL?: string;
   CANONICAL_VANTAGE_REGION?: string;
+  ANALYTICS_SAMPLE_RATE?: string;
   PROBE_RATE_LIMITER?: RateLimitBinding;
   CHECK_RATE_LIMIT_LIGHT?: RateLimitBinding;
   CHECK_RATE_LIMIT_STANDARD?: RateLimitBinding;

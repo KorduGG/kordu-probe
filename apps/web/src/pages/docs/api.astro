@@ -104,6 +104,11 @@ const docsStructuredData = {
           <li><strong>ip</strong>: target normalization, reverse DNS, and RDAP-backed metadata</li>
           <li><strong>udp</strong>: explicitly unsupported in v1 on Cloudflare-only infrastructure</li>
         </ul>
+        <p>
+          If <code>modules</code> is omitted, the API chooses a focused low-cost default: TCP for
+          requests with a port, HTTP only when an HTTP hint is supplied, DNS for bare hostnames, and
+          IP metadata for bare IP addresses.
+        </p>
       </article>
     </div>
 
@@ -164,7 +169,7 @@ const docsStructuredData = {
     "ip": null
   },
   "resolvedAddresses": ["93.184.216.34"],
-  "modules": ["dns", "ip", "tcp", "http"],
+  "modules": ["tcp", "dns", "http", "ip"],
   "results": {
     "tcp": { "status": "open" },
     "dns": { "status": "ok" },

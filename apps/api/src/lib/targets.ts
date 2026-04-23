@@ -21,6 +21,97 @@ function isInRange(ip: string, base: string, maskBits: number): boolean {
   return (ipToNumber(ip) & mask) === (ipToNumber(base) & mask);
 }
 
+function ipv4ToHextets(ip: string): [string, string] | null {
+  const parts = ip.split(".");
+
+  if (parts.length !== 4) {
+    return null;
+  }
+
+  const bytes = parts.map((part) => {
+    if (!/^\d{1,3}$/.test(part)) {
+      return null;
+    }
+
+    const value = Number(part);
+    return Number.isInteger(value) && value >= 0 && value <= 255 ? value : null;
+  });
+
+  if (bytes.some((byte) => byte === null)) {
+    return null;
+  }
+
+  const [first, second, third, fourth] = bytes as [number, number, number, number];
+  return [
+    ((first << 8) | second).toString(16),
+    ((third << 8) | fourth).toString(16)
+  ];
+}
+
+function parseIpv6ToBigInt(ip: string): bigint | null {
+  let normalized = ip.toLowerCase();
+
+  if (normalized.includes(".")) {
+    const lastColon = normalized.lastIndexOf(":");
+    const ipv4 = normalized.slice(lastColon + 1);
+    const hextets = ipv4ToHextets(ipv4);
+
+    if (lastColon === -1 || !hextets) {
+      return null;
+    }
+
+    normalized = `${normalized.slice(0, lastColon)}:${hextets[0]}:${hextets[1]}`;
+  }
+
+  const compressedParts = normalized.split("::");
+
+  if (compressedParts.length > 2) {
+    return null;
+  }
+
+  const left = compressedParts[0] ? compressedParts[0].split(":") : [];
+  const right = compressedParts[1] ? compressedParts[1].split(":") : [];
+  const missing = 8 - left.length - right.length;
+
+  if ((compressedParts.length === 1 && missing !== 0) || (compressedParts.length === 2 && missing < 1)) {
+    return null;
+  }
+
+  const hextets = [
+    ...left,
+    ...Array<string>(Math.max(missing, 0)).fill("0"),
+    ...right
+  ];
+
+  if (hextets.length !== 8) {
+    return null;
+  }
+
+  return hextets.reduce<bigint>((value, part) => {
+    if (!/^[0-9a-f]{1,4}$/.test(part)) {
+      return -1n;
+    }
+
+    return (value << 16n) + BigInt(parseInt(part, 16));
+  }, 0n);
+}
+
+function isIpv6InRange(ip: string, base: string, maskBits: number): boolean {
+  const ipValue = parseIpv6ToBigInt(ip);
+  const baseValue = parseIpv6ToBigInt(base);
+
+  if (ipValue === null || baseValue === null || ipValue < 0n || baseValue < 0n) {
+    return true;
+  }
+
+  if (maskBits === 0) {
+    return true;
+  }
+
+  const shift = BigInt(128 - maskBits);
+  return (ipValue >> shift) === (baseValue >> shift);
+}
+
 export function isPublicIpv4(ip: string): boolean {
   const blockedRanges = [
     ["0.0.0.0", 8],
@@ -43,30 +134,25 @@ export function isPublicIpv4(ip: string): boolean {
 }
 
 export function isPublicIpv6(ip: string): boolean {
-  const normalized = ip.toLowerCase();
-  const ipv4MappedMatch = normalized.match(/^(?:[0-9a-f]{0,4}:)*ffff:(\d{1,3}(?:\.\d{1,3}){3})$/i);
+  const blockedRanges = [
+    ["::", 96],
+    ["::1", 128],
+    ["::ffff:0:0", 96],
+    ["64:ff9b::", 96],
+    ["64:ff9b:1::", 48],
+    ["100::", 64],
+    ["2001::", 23],
+    ["2001:2::", 48],
+    ["2001:db8::", 32],
+    ["2002::", 16],
+    ["3fff::", 20],
+    ["5f00::", 16],
+    ["fc00::", 7],
+    ["fe80::", 10],
+    ["ff00::", 8]
+  ] as const;
 
-  if (ipv4MappedMatch) {
-    const mappedIpv4 = ipv4MappedMatch[1];
-    return mappedIpv4 ? isPublicIpv4(mappedIpv4) : false;
-  }
-
-  if (
-    normalized === "::" ||
-    normalized === "::1" ||
-    normalized.startsWith("fc") ||
-    normalized.startsWith("fd") ||
-    normalized.startsWith("fe8") ||
-    normalized.startsWith("fe9") ||
-    normalized.startsWith("fea") ||
-    normalized.startsWith("feb") ||
-    normalized.startsWith("ff") ||
-    normalized.startsWith("2001:db8")
-  ) {
-    return false;
-  }
-
-  return true;
+  return !blockedRanges.some(([base, bits]) => isIpv6InRange(ip, base, bits));
 }
 
 export function isPublicIp(ip: string): boolean {
