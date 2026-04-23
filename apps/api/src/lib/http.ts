@@ -1,4 +1,4 @@
-import { formatHostForUrl } from "./targets";
+import { formatHostForUrl, normalizeTargetInput, resolvePublicAddresses } from "./targets";
 import type {
   HttpCheckResult,
   HttpMethod,
@@ -49,6 +49,34 @@ function resolveNextUrl(currentUrl: string, location: string | null): string | n
   }
 }
 
+async function isAllowedHttpUrl(url: string, timeoutMs: number): Promise<boolean> {
+  try {
+    const parsed = new URL(url);
+
+    if ((parsed.protocol !== "http:" && parsed.protocol !== "https:") || parsed.username || parsed.password) {
+      return false;
+    }
+
+    const target = normalizeTargetInput(parsed.hostname);
+
+    if (target.targetKind === "domain") {
+      return (await resolvePublicAddresses(target.normalizedTarget, timeoutMs)).length > 0;
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function cancelResponseBody(response: Response): Promise<void> {
+  try {
+    await response.body?.cancel();
+  } catch {
+    // Best-effort cleanup only; failed cancellation should not mask probe results.
+  }
+}
+
 async function fetchWithTimeout(
   url: string,
   method: HttpMethod,
@@ -88,6 +116,7 @@ export async function runHttpCheck(
       const response = await fetchWithTimeout(currentUrl, method, timeoutMs);
 
       if ((response.status === 405 || response.status === 501) && method === "HEAD") {
+        await cancelResponseBody(response);
         method = "GET";
         continue;
       }
@@ -102,13 +131,14 @@ export async function runHttpCheck(
       if (response.status >= 300 && response.status < 400 && location && redirectCount < MAX_REDIRECTS) {
         const nextUrl = resolveNextUrl(currentUrl, location);
 
-        if (!nextUrl) {
+        if (!nextUrl || !(await isAllowedHttpUrl(nextUrl, timeoutMs))) {
+          await cancelResponseBody(response);
           return {
             status: "failed",
             scheme,
             method,
             url: buildInitialUrl(target, scheme, port),
-            finalUrl: currentUrl,
+            finalUrl: nextUrl ?? currentUrl,
             statusCode: response.status,
             ok: false,
             latencyMs: Date.now() - startedAt,
@@ -116,10 +146,12 @@ export async function runHttpCheck(
           };
         }
 
+        await cancelResponseBody(response);
         currentUrl = nextUrl;
         continue;
       }
 
+      await cancelResponseBody(response);
       return {
         status: "ok",
         scheme,

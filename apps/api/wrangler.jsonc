@@ -7,7 +7,20 @@
     "region": "aws:eu-west-2"
   },
   "observability": {
-    "enabled": true
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 0.01,
+      "invocation_logs": false
+    },
+    "traces": {
+      "enabled": false,
+      "head_sampling_rate": 0.01
+    }
+  },
+  "limits": {
+    "cpu_ms": 10,
+    "subrequests": 12
   },
   "assets": {
     "directory": "../web/dist",
@@ -27,6 +40,7 @@
     "CANONICAL_VANTAGE_ID": "canonical-edge-lhr",
     "CANONICAL_VANTAGE_LABEL": "Canonical Cloudflare vantage near London",
     "CANONICAL_VANTAGE_REGION": "aws:eu-west-2",
+    "ANALYTICS_SAMPLE_RATE": "0",
     "TURNSTILE_EXPECTED_HOSTNAME": "probe.kordu.tools"
   },
   "analytics_engine_datasets": [

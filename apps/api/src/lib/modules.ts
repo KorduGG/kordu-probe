@@ -21,21 +21,15 @@ export function getRequestedModulesForTargetKind(request: CheckRequest, targetKi
     return explicit;
   }
 
-  const modules: CheckModule[] = ["ip"];
-
-  if (targetKind === "domain") {
-    modules.unshift("dns");
+  if (request.http) {
+    return ["http"];
   }
 
   if (typeof request.port === "number") {
-    modules.push("tcp");
+    return ["tcp"];
   }
 
-  if (request.http?.scheme || request.port === 80 || request.port === 443) {
-    modules.push("http");
-  }
-
-  return Array.from(new Set(modules));
+  return targetKind === "domain" ? ["dns"] : ["ip"];
 }
 
 export function getRequestedModules(request: CheckRequest, resolvedTarget: ResolvedTarget): CheckModule[] {

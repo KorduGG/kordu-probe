@@ -207,6 +207,32 @@ describe("connectivity API", () => {
     expect(deps.verifyTurnstile).toHaveBeenCalledOnce();
   });
 
+  it("defaults website port checks to the cheap TCP module only", async () => {
+    const deps = createDeps();
+    const app = createApp(deps);
+
+    const response = await app.request("https://probe.kordu.tools/api/check/web", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        target: "example.com",
+        port: 443,
+        turnstileToken: "token"
+      })
+    }, createEnv());
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("x-kordu-rate-limit-tier")).toBe("light");
+    const body = (await response.json()) as { modules: string[] };
+    expect(body.modules).toEqual(["tcp"]);
+    expect(deps.probePort).toHaveBeenCalledOnce();
+    expect(deps.runDnsCheck).not.toHaveBeenCalled();
+    expect(deps.runHttpCheck).not.toHaveBeenCalled();
+    expect(deps.runIpCheck).not.toHaveBeenCalled();
+  });
+
   it("maps failed Turnstile verification to 403 for website checks", async () => {
     const deps = createDeps();
     deps.verifyTurnstile.mockResolvedValueOnce({
@@ -282,6 +308,57 @@ describe("connectivity API", () => {
     expect(deps.verifyTurnstile).not.toHaveBeenCalled();
   });
 
+  it("does not write Analytics Engine datapoints unless sampling is enabled", async () => {
+    const deps = createDeps();
+    const app = createApp(deps);
+    const analytics = {
+      writeDataPoint: vi.fn()
+    };
+
+    const response = await app.request("https://probe.kordu.tools/api/check", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        target: "example.com",
+        port: 443,
+        modules: ["tcp"]
+      })
+    }, createEnv({
+      PROBE_ANALYTICS: analytics
+    }));
+
+    expect(response.status).toBe(200);
+    expect(analytics.writeDataPoint).not.toHaveBeenCalled();
+  });
+
+  it("writes sampled Analytics Engine datapoints when explicitly enabled", async () => {
+    const deps = createDeps();
+    const app = createApp(deps);
+    const analytics = {
+      writeDataPoint: vi.fn()
+    };
+
+    const response = await app.request("https://probe.kordu.tools/api/check", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        target: "example.com",
+        port: 443,
+        modules: ["tcp"]
+      })
+    }, createEnv({
+      ANALYTICS_SAMPLE_RATE: "1",
+      PROBE_ANALYTICS: analytics
+    }));
+
+    expect(response.status).toBe(200);
+    expect(analytics.writeDataPoint).toHaveBeenCalledOnce();
+  });
+
   it("rejects rate-limited website checks before Turnstile verification", async () => {
     const deps = createDeps();
     const app = createApp(deps);
@@ -301,7 +378,7 @@ describe("connectivity API", () => {
         turnstileToken: "token"
       })
     }, createEnv({
-      CHECK_RATE_LIMIT_HEAVY: rateLimiter
+      CHECK_RATE_LIMIT_LIGHT: rateLimiter
     }));
 
     expect(response.status).toBe(429);

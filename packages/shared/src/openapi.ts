@@ -8,6 +8,8 @@ const checkRequestSchema = {
     port: { type: "integer", minimum: 1, maximum: 65535 },
     modules: {
       type: "array",
+      description:
+        "Optional modules to execute. When omitted, Kordu Probe chooses the cheapest focused default: tcp for port checks, http when an HTTP hint is provided, dns for bare hostnames, and ip for bare IP addresses.",
       items: {
         type: "string",
         enum: moduleEnum

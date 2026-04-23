@@ -60,7 +60,7 @@
     address: "No result yet",
     checkType: "Live check",
     service: "Pending",
-    modules: "TCP, DNS, HTTP, IP"
+    modules: "TCP"
   };
 
   const compactPreviewPresentation = {
@@ -72,7 +72,7 @@
     address: "No result yet",
     checkType: "Live check",
     service: "Pending",
-    modules: "TCP, DNS, HTTP, IP"
+    modules: "TCP"
   };
 
   const unavailablePresentation = {
@@ -84,7 +84,7 @@
     address: "No result yet",
     checkType: "Live check",
     service: "Pending",
-    modules: "TCP, DNS, HTTP, IP"
+    modules: "TCP"
   };
 
   const verificationFailedPresentation = {
@@ -96,7 +96,7 @@
     address: "No result yet",
     checkType: "Live check",
     service: "Pending",
-    modules: "TCP, DNS, HTTP, IP"
+    modules: "TCP"
   };
 
   let turnstileWidgetId = null;
@@ -369,7 +369,7 @@
       { t: 100, text: "$ probe " + target + portLabel, v: "cmd" },
       { t: 220, text: "[edge] Resolving " + target + "...", v: "info" },
       { t: 420, text: "[edge] Selecting nearest Cloudflare vantage...", v: "info" },
-      { t: 640, text: port ? "[edge] Dialing " + target + ":" + port + "..." : "[edge] Probing DNS + HTTP modules...", v: "info" },
+      { t: 640, text: port ? "[edge] Dialing " + target + ":" + port + "..." : (/[a-z]/i.test(target) ? "[edge] Probing HTTPS from the edge..." : "[edge] Reading public IP metadata..."), v: "info" },
     ];
     for (const line of lines) {
       await new Promise((r) => setTimeout(r, line.t));
