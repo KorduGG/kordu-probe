@@ -58,6 +58,7 @@ describe("web build outputs", () => {
     expect(headers).toContain('rel="service-desc"');
     expect(headers).toContain('rel="service-doc"');
     expect(headers).toContain('rel="describedby"');
+    expect(headers).toContain("Cache-Control: public, max-age=0, must-revalidate, no-transform");
     expect(headers).toContain("X-Frame-Options: DENY");
     expect(headers).toContain("Referrer-Policy: strict-origin-when-cross-origin");
     expect(headers).toContain("Permissions-Policy: accelerometer=(), camera=(), geolocation=(), gyroscope=(), microphone=(), payment=(), usb=()");
