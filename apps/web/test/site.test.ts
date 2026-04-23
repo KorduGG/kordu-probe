@@ -14,6 +14,10 @@ function getHeaderBlocks(headers: string) {
     .filter((lines) => lines.length > 0);
 }
 
+function getHeaderBlock(blocks: string[][], route: string) {
+  return blocks.find((lines) => lines[0] === route);
+}
+
 describe("web build outputs", () => {
   it("ships robots.txt with explicit AI bot rules and content signals", () => {
     const robots = readFileSync(path.join(distRoot, "robots.txt"), "utf8");
@@ -63,9 +67,9 @@ describe("web build outputs", () => {
   it("keeps homepage discovery and security headers in the static headers file", () => {
     const headers = readFileSync(path.join(webRoot, "public", "_headers"), "utf8");
     const blocks = getHeaderBlocks(headers);
-    const globalBlock = blocks.find((lines) => lines[0] === "/*");
-    const rootBlock = blocks.find((lines) => lines[0] === "/");
-    const guideBlock = blocks.find((lines) => lines[0] === "/guides/*");
+    const globalBlock = getHeaderBlock(blocks, "/*");
+    const rootBlock = getHeaderBlock(blocks, "/");
+    const astroAssetBlock = getHeaderBlock(blocks, "/_astro/*");
 
     expect(headers).toContain('rel="api-catalog"');
     expect(headers).toContain('rel="service-desc"');
@@ -75,9 +79,13 @@ describe("web build outputs", () => {
     expect(globalBlock?.join("\n")).toContain("X-Frame-Options: DENY");
     expect(globalBlock?.join("\n")).toContain("Referrer-Policy: strict-origin-when-cross-origin");
     expect(globalBlock?.join("\n")).toContain("Permissions-Policy: accelerometer=(), camera=(), geolocation=(), gyroscope=(), microphone=(), payment=(), usb=()");
-    expect(globalBlock?.join("\n")).not.toContain("Cache-Control:");
-    expect(rootBlock?.join("\n")).toContain("Cache-Control: public, max-age=0, must-revalidate, no-transform");
-    expect(guideBlock?.join("\n")).toContain("Cache-Control: public, max-age=0, must-revalidate, no-transform");
+    expect(globalBlock?.join("\n")).toContain("Cache-Control: public, max-age=0, must-revalidate, no-transform");
+    expect(rootBlock?.join("\n")).toContain('rel="api-catalog"');
+    expect(rootBlock?.join("\n")).toContain('rel="service-desc"');
+    expect(rootBlock?.join("\n")).toContain('rel="service-doc"');
+    expect(rootBlock?.join("\n")).toContain('rel="describedby"');
+    expect(astroAssetBlock?.join("\n")).toContain("! Cache-Control");
+    expect(astroAssetBlock?.join("\n")).toContain("Cache-Control: public, max-age=31556952, immutable");
   });
 
   it("publishes the generated agent skills index", () => {

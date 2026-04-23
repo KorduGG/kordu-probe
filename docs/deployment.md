@@ -22,7 +22,7 @@ Kordu Probe is designed for Cloudflare.
 - The web app is built statically and served through the Worker.
 - Astro sitemap generation is handled by `@astrojs/sitemap`, which emits `sitemap-index.xml` plus one or more numbered sitemap files during build.
 - The web bundle now ships `manifest.webmanifest`, `/.well-known/security.txt`, `/security/`, and `/LICENSE` as part of the public trust surface.
-- `apps/web/public/_headers` applies `Cache-Control: public, max-age=0, must-revalidate, no-transform` to document routes only so Cloudflare does not auto-inject Web Analytics, Zaraz, Google Tag Gateway, or similar edge-mutated scripts into the HTML shell behind the repo's strict CSP, while hashed static assets keep normal platform caching/compression behavior.
+- `apps/web/public/_headers` applies `Cache-Control: public, max-age=0, must-revalidate, no-transform` at the global asset layer so Cloudflare does not auto-inject Web Analytics, Zaraz, Google Tag Gateway, or similar edge-mutated scripts into the HTML shell behind the repo's strict CSP, then explicitly overrides `/_astro/*` with long-lived immutable caching for hashed build artifacts.
 - TCP probing relies on `cloudflare:sockets`.
 - Private targets and Cloudflare IP ranges are intentionally blocked.
 - Raw UDP probing is intentionally unsupported in v1.
