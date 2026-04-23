@@ -64,6 +64,24 @@ describe("web build outputs", () => {
     expect(indexHtml).not.toContain("frame-ancestors");
   });
 
+  it("keeps the generated CSP compatible with the live Google Tag Gateway stack", () => {
+    const indexHtml = readFileSync(path.join(distRoot, "index.html"), "utf8");
+    expect(indexHtml).toContain("https://*.googletagmanager.com");
+    expect(indexHtml).toContain("https://*.google-analytics.com");
+    expect(indexHtml).toContain("https://*.analytics.google.com");
+    expect(indexHtml).toContain("https://*.g.doubleclick.net");
+    expect(indexHtml).toContain("https://pagead2.googlesyndication.com");
+    expect(indexHtml).toContain("https://www.google.com");
+    expect(indexHtml).toContain("https://www.google.co.uk");
+    expect(indexHtml).toContain("https://www.clarity.ms");
+    expect(indexHtml).toContain("https://*.clarity.ms");
+    expect(indexHtml).toContain("https://c.bing.com");
+    expect(indexHtml).toContain("https://analytics.ahrefs.com");
+    expect(indexHtml).toContain("sha384-7q/O/o1S6Sm8Ntz/RCps5vntgBp+PqqrctVEl/EiPmnFqcFt+NPunZu2sm14EoF6");
+    expect(indexHtml).toContain("sha384-jDSvZqij4YzR8i2EDPcRPbVAX9TzCB93XTAdh09iTkJkfrxSgcx62ryPPsfswjaM");
+    expect(indexHtml).toContain("sha384-lJT9zxpxhrRn0BMBKIxiPe05CNGHuqSxcwuMDKqMgFQpxlf8ijxzMJRI4hfVOf9p");
+  });
+
   it("keeps homepage discovery and security headers in the static headers file", () => {
     const headers = readFileSync(path.join(webRoot, "public", "_headers"), "utf8");
     const blocks = getHeaderBlocks(headers);
