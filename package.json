@@ -39,7 +39,7 @@
     "test": "bun run generate:agent-skills && bun run test:shared && bun run test:web && bun run test:api"
   },
   "devDependencies": {
-    "@eslint/js": "9.39.1",
+    "@eslint/js": "10.0.1",
     "@types/node": "24.10.1",
     "eslint": "9.39.4",
     "globals": "16.5.0",
